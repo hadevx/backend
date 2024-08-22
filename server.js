@@ -44,7 +44,7 @@ app.get("/api/config/paypal", (req, res) => res.send({ clientId: process.env.PAY
 /* const __dirname = path.resolve(); */
 app.use("/uploads", express.static(path.join(__dirname, "./uploads")));
 
-if (process.env.NODE_ENV === "production") {
+/* if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "../frontend/dist")));
 
   app.get("*", (req, res) =>
@@ -55,11 +55,15 @@ if (process.env.NODE_ENV === "production") {
     res.send("API intialized");
     console.log(req.path);
   });
-}
+} */
 // Error handlers
 app.use(notFound);
 app.use(errorHandle);
-
+app.get("/", (req, res) => {
+  res.send("API intialized");
+  console.log(req.path);
+});
 app.listen(process.env.PORT || 8000, (req, res) => {
-  console.log("Listening on port " + process.env.PORT);
+  dbConnect();
+  console.log("Connecting to DB & Listening on port " + process.env.PORT);
 });
