@@ -33,7 +33,8 @@ router.get("/discount", getDiscountStatus);
 router.get("/delivery", getDeliveryStatus);
 router.post("/update-stock", updateStock);
 router.get("/category/:category", getProductsByCategory);
-router.route("/").get(getProducts).post(protect, admin, createProduct);
+router.get("/", getProducts);
+router.post("/", protect, admin, createProduct);
 router.get("/top", getTopRatedProducts);
 router
   .route("/:id")
