@@ -23,7 +23,7 @@ const getLatestProducts = asyncHandler(async (req, res) => {
 
   const products = await Product.find({}).sort({ createdAt: -1 }).limit(latest);
 
-  res.json(products);
+  return res.status(200).json(products);
 });
 
 // @desc    Fetch a product
