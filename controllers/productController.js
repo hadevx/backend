@@ -22,12 +22,8 @@ const getLatestProducts = asyncHandler(async (req, res) => {
   const latest = 5;
 
   const products = await Product.find({}).sort({ createdAt: -1 }).limit(latest);
-  if (products) {
-    return res.status(200).json(products);
-  } else {
-    res.status(404);
-    throw new Error("Products not found");
-  }
+
+  return res.status(200).json(products);
 });
 
 // @desc    Fetch a product
