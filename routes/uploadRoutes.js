@@ -14,7 +14,6 @@ const storage = multer.diskStorage({
     cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
   },
 });
-console.log(storage);
 
 function checkFileType(file, cb) {
   const filetypes = /jpg|jpeg|png/;
@@ -32,7 +31,7 @@ const upload = multer({ storage });
 router.post("/", upload.single("image"), (req, res) => {
   res.send({
     message: "Image uploaded",
-    image: `http://localhost:5000/uploads/${req.file.filename}`,
+    image: `http://localhost:4001/uploads/${req.file.filename}`,
   });
 });
 

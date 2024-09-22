@@ -17,10 +17,11 @@ const orderSchema = new mongoose.Schema(
       },
     ],
     shippingAddress: {
-      address: { type: String, required: true },
+      province: { type: String, required: true },
       city: { type: String, required: true },
-      postalCode: { type: String, required: true },
-      country: { type: String, required: true },
+      block: { type: String, required: true },
+      street: { type: String, required: true },
+      house: { type: String, required: true },
     },
     paymentMethod: {
       type: String,
@@ -33,11 +34,6 @@ const orderSchema = new mongoose.Schema(
       email_address: { type: String },
     },
     itemsPrice: {
-      type: Number,
-      required: true,
-      default: 0.0,
-    },
-    taxPrice: {
       type: Number,
       required: true,
       default: 0.0,

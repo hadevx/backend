@@ -8,12 +8,14 @@ const {
   updateOrderToPaid,
   updateOrderToDeliverd,
   getOrders,
+  getUserOrders,
 } = require("../controllers/orderControllers");
 
 // /api/orders
+router.get("/user-orders/:id", getUserOrders);
 router.route("/").post(protect, addOrderItems).get(protect, admin, getOrders);
 router.route("/mine").get(protect, getMyOrders);
-router.route("/:id").get(protect, getOrderById);
+router.get("/:id", protect, getOrderById);
 router.route("/:id/pay").put(protect, updateOrderToPaid);
 router.route("/:id/deliver").put(protect, admin, updateOrderToDeliverd);
 

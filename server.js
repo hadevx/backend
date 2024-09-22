@@ -11,17 +11,14 @@ const orderRoutes = require("./routes/orderRoutes.js");
 const { notFound, errorHandle } = require("./middleware/errorMiddleware.js");
 const cookieParser = require("cookie-parser");
 const uploadRoutes = require("./routes/uploadRoutes.js");
-
-// Database connection
-dbConnect();
-
+const storeRoutes = require("./routes/storeRoutes.js");
 // Intialize express app
 const app = express();
 
 // CORS
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: ["http://localhost:3000", "http://localhost:3001"],
     credentials: true,
   })
 );
@@ -37,31 +34,19 @@ app.use(cookieParser());
 app.use("/api/products", productRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/update-store-status", storeRoutes);
 app.use("/api/upload", uploadRoutes);
 
 app.get("/api/config/paypal", (req, res) => res.send({ clientId: process.env.PAYPAL_CLIENT_ID }));
 
-/* const __dirname = path.resolve(); */
 app.use("/uploads", express.static(path.join(__dirname, "./uploads")));
 
-/* if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../frontend/dist")));
-
-  app.get("*", (req, res) =>
-    res.sendFile(path.resolve(__dirname, "frontend", "dist", "index.html"))
-  );
-} else {
-  app.get("/", (req, res) => {
-    res.send("API intialized");
-    console.log(req.path);
-  });
-} */
 // Error handlers
 app.use(notFound);
 app.use(errorHandle);
+
 app.get("/", (req, res) => {
   res.send("API intialized");
-  console.log(req.path);
 });
 app.listen(process.env.PORT || 8000, (req, res) => {
   dbConnect();
