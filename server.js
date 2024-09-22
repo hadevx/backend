@@ -40,14 +40,14 @@ app.use("/api/upload", uploadRoutes);
 app.get("/api/config/paypal", (req, res) => res.send({ clientId: process.env.PAYPAL_CLIENT_ID }));
 
 app.use("/uploads", express.static(path.join(__dirname, "./uploads")));
+app.get("/", (req, res) => {
+  res.send("API intialized");
+});
 
 // Error handlers
 app.use(notFound);
 app.use(errorHandle);
 
-app.get("/", (req, res) => {
-  res.send("API intialized");
-});
 app.listen(process.env.PORT || 8000, (req, res) => {
   dbConnect();
   console.log("Connecting to DB & Listening on port " + process.env.PORT);
