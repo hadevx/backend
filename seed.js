@@ -1,7 +1,7 @@
 const dotenv = require("dotenv");
-const users = require("./data/users.js");
-const products = require("./data/products.js");
-const addresses = require("./data/addresses.js");
+const users = require("./data/users.js"); //dummy data
+const products = require("./data/products.js"); //dummy data
+const addresses = require("./data/addresses.js"); //dummy data
 const User = require("./models/userModel.js");
 const Product = require("./models/productModel.js");
 const Order = require("./models/orderModel.js");
@@ -11,7 +11,7 @@ const dbConnect = require("./config/db.js");
 dotenv.config();
 dbConnect();
 
-const importData = async () => {
+const seedData = async () => {
   try {
     await Order.deleteMany();
     await Product.deleteMany();
@@ -26,7 +26,7 @@ const importData = async () => {
 
     await Product.insertMany(sampleProducts);
     await Address.insertMany(addresses);
-    console.log("Data imported");
+    console.log("Data seeded");
     process.exit();
   } catch (error) {
     console.log(`${error}`);
@@ -51,5 +51,5 @@ const destroyData = async () => {
 if (process.argv[2] === "-d") {
   destroyData();
 } else {
-  importData();
+  seedData();
 }
