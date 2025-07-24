@@ -18,7 +18,7 @@ const app = express();
 // CORS
 app.use(
   cors({
-    origin: "https://storefront-phi-nine.vercel.app",
+    origin: ["https://storefront-phi-nine.vercel.app", "https://frontend-commerce.vercel.app"],
     credentials: true,
   })
 );
