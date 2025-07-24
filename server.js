@@ -18,7 +18,11 @@ const app = express();
 // CORS
 app.use(
   cors({
-    origin: ["https://storefront-phi-nine.vercel.app", "https://frontend-commerce.vercel.app"],
+    origin: [
+      "http://localhost:3002",
+      "https://storefront-phi-nine.vercel.app",
+      "https://frontend-commerce.vercel.app",
+    ],
     credentials: true,
   })
 );
