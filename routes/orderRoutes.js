@@ -14,7 +14,9 @@ const {
 
 // /api/orders
 router.get("/user-orders/:id", getUserOrders);
+
 router.route("/").post(protect, addOrderItems).get(protect, admin, getOrders);
+
 router.route("/mine").get(protect, getMyOrders);
 router.get("/:id", protect, getOrderById);
 router.route("/:id/pay").put(protect, updateOrderToPaid);

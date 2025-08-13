@@ -132,8 +132,13 @@ const updateOrderToCanceled = asyncHandler(async (req, res) => {
 // @route   PUT /api/orders
 // @access  Private/admin
 const getOrders = asyncHandler(async (req, res) => {
-  const orders = await Order.find({}).populate("user", "id name").sort({ createdAt: -1 });
-  res.status(200).json(orders);
+  try {
+    const orders = await Order.find({}).sort({ createdAt: -1 }).limit(2).lean();
+    res.status(200).json(orders);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch orders" });
+  }
 });
 
 const getUserOrders = asyncHandler(async (req, res) => {
