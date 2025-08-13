@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
+const { Schema } = mongoose;
 
-const orderSchema = new mongoose.Schema(
+const orderSchema = new Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -13,11 +14,11 @@ const orderSchema = new mongoose.Schema(
         qty: { type: Number, required: true },
         image: { type: String, required: true },
         price: { type: Number, required: true },
-        product: { type: mongoose.Schema.Types.ObjectId, requried: true, ref: "Product" },
+        product: { type: mongoose.Schema.Types.ObjectId, required: true, ref: "Product" },
       },
     ],
     shippingAddress: {
-      province: { type: String, required: true },
+      governorate: { type: String, required: true },
       city: { type: String, required: true },
       block: { type: String, required: true },
       street: { type: String, required: true },
@@ -59,6 +60,10 @@ const orderSchema = new mongoose.Schema(
     isDelivered: {
       type: Boolean,
       required: true,
+      default: false,
+    },
+    isCanceled: {
+      type: Boolean,
       default: false,
     },
     deliveredAt: {

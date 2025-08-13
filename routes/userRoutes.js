@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const { protect, admin } = require("../middleware/authMiddleware");
+const registerLimiter = require("../utils/registerLimit");
 const {
-  authUser,
+  loginUser,
   registerUser,
   logoutUser,
   getUserProfile,
@@ -14,16 +15,26 @@ const {
   createAddress,
   getAddress,
   updateAddress,
+  loginAdmin,
 } = require("../controllers/userController");
 
-// /api/users
-router.route("/address/:userId").get(protect, getAddress);
-router.route("/address").post(protect, createAddress).put(protect, updateAddress);
-router.route("/").post(registerUser).get(protect, admin, getUsers);
+/* http://localhost:4001/api/users */
+
+// Client routes
+router.post("/login", loginUser);
+router.post("/register", registerLimiter, registerUser);
+router.get("/address/:userId", protect, getAddress);
+router.post("/address", protect, createAddress);
+router.put("/address", protect, updateAddress);
+router.get("/profile", protect, getUserProfile);
+router.put("/profile", protect, updateUserProfile);
 router.post("/logout", logoutUser);
-router.post("/auth", authUser);
-router.route("/profile").get(protect, getUserProfile).put(protect, updateUserProfile);
+
+// Admin routes
+router.get("/", protect, admin, getUsers);
 router.put("/:id", protect, admin, updateUser);
-router.route("/:id").delete(protect, admin, deleteUser).get(protect, admin, getUserById);
+router.delete("/:id", protect, admin, deleteUser);
+router.get("/:id", protect, admin, getUserById);
+router.post("/admin", loginAdmin);
 
 module.exports = router;

@@ -5,8 +5,8 @@ const User = require("../models/userModel");
 const transporter = nodemailer.createTransport({
   service: "gmail", // or use your SMTP service provider
   auth: {
-    user: process.env.ADMIN_EMAIL, // Your email address (environment variable)
-    pass: process.env.ADMIN_EMAIL_PASSWORD, // Your email password (environment variable)
+    user: "hn98q8@gmail.com", // Your email address (environment variable)
+    pass: "ikbh asif phkr qzmg", // Your email password (environment variable)
   },
 });
 
@@ -16,15 +16,15 @@ const sendOrderEmail = async (orderDetails) => {
 
   const mailOptions = {
     from: process.env.ADMIN_EMAIL,
-    to: process.env.ADMIN_EMAIL, // Send the email to the admin
-    subject: "New Order Placed",
+    to: "hkosaimi@gmail.com", // Send the email to the admin
+    subject: "You've got a new order",
     html: `<h1>You Have New Order</h1>
-           <p>Order ID: <strong>${orderDetails._id}</strong></p>
+           <p>Order ID: <strong>${orderDetails?._id}</strong></p>
            <p>Total Price: <strong>${orderDetails.totalPrice.toFixed(3)} KD</strong> </p>
            <p>Customer: <strong>${user.name}</strong></p>
            <p>Email: <strong>${user.email}</strong></p>
            <p>Phone: <strong>${user.phone}</strong></p>
-           <p>Province: <strong>${orderDetails.shippingAddress.province}</strong></p>
+           <p>Province: <strong>${orderDetails.shippingAddress.governorate}</strong></p>
            <p>City: <strong>${orderDetails.shippingAddress.city}</strong></p>
            <p>Block: <strong>${orderDetails.shippingAddress.block}</strong></p>
            <p>Street: <strong>${orderDetails.shippingAddress.street}</strong></p>

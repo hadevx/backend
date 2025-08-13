@@ -2,10 +2,18 @@ const dotenv = require("dotenv");
 const users = require("./data/users.js"); //dummy data
 const products = require("./data/products.js"); //dummy data
 const addresses = require("./data/addresses.js"); //dummy data
+const orders = require("./data/orders.js"); //dummy data
+const categories = require("./data/categories.js");
+
 const User = require("./models/userModel.js");
 const Product = require("./models/productModel.js");
 const Order = require("./models/orderModel.js");
 const Address = require("./models/addressModel.js");
+const Delivery = require("./models/deliveryModel.js");
+const Discount = require("./models/discountModel.js");
+const Store = require("./models/storeModel.js");
+const Category = require("./models/categoryModel.js");
+
 const dbConnect = require("./config/db.js");
 
 dotenv.config();
@@ -17,15 +25,34 @@ const seedData = async () => {
     await Product.deleteMany();
     await User.deleteMany();
     await Address.deleteMany();
+    await Delivery.deleteMany();
+    await Discount.deleteMany();
+    await Store.deleteMany();
+    await Category.deleteMany();
 
     const createdUsers = await User.insertMany(users);
+    const createdCategories = await Category.insertMany(categories);
     const adminUser = createdUsers[0]._id;
-    const sampleProducts = products.map((product) => {
-      return { ...product, user: adminUser };
+
+    const sampleProducts = products.map((product, index) => {
+      return {
+        ...product,
+        user: adminUser,
+        category: createdCategories[index % createdCategories.length]._id,
+      };
+    });
+    const sampleOrders = orders.map((order) => {
+      return { ...order, user: adminUser };
     });
 
     await Product.insertMany(sampleProducts);
     await Address.insertMany(addresses);
+    await Order.insertMany(sampleOrders);
+
+    await Delivery.create({ timeToDeliver: "today", shippingFee: 0, minDeliveryCost: 0 });
+
+    await Store.create({ status: "active" });
+
     console.log("Data seeded");
     process.exit();
   } catch (error) {

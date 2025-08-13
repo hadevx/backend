@@ -3,6 +3,8 @@ const Product = require("../models/productModel");
 const Delivery = require("../models/deliveryModel");
 const Discount = require("../models/discountModel");
 const Category = require("../models/categoryModel");
+const fs = require("fs");
+const path = require("path");
 
 // @desc    Fetch all products
 // @route   GET /api/products
@@ -18,25 +20,50 @@ const getProducts = asyncHandler(async (req, res) => {
   res.json(products);
 });
 
-const getLatestProducts = asyncHandler(async (req, res) => {
-  const latest = 5;
+const getProductsPagination = asyncHandler(async (req, res) => {
+  const pageSize = 8; // how many per page
+  const page = Number(req.query.pageNumber) || 1;
 
-  const products = await Product.find({}).sort({ createdAt: -1 }).limit(latest);
+  // Search filter
+  const keyword = req.query.keyword ? { name: { $regex: req.query.keyword, $options: "i" } } : {};
 
-  return res.status(200).json(products);
+  // Count total products matching search
+  const count = await Product.countDocuments({ ...keyword });
+
+  // Paginate + sort newest first
+  const products = await Product.find({ ...keyword })
+    .sort({ createdAt: -1 })
+    .limit(pageSize)
+    .skip(pageSize * (page - 1));
+
+  res.json({
+    products,
+    page,
+    pages: Math.ceil(count / pageSize), // total pages
+    total: count, // total products
+  });
 });
 
-// @desc    Fetch a product
+const getLatestProducts = asyncHandler(async (req, res) => {
+  const products = await Product.find({}).sort({ createdAt: -1 }).limit(5);
+
+  if (!products || products.length === 0) {
+    res.status(404);
+    throw new Error("No products found");
+  }
+  res.status(200).json(products);
+});
+
+// @desc    Get one product
 // @route   GET /api/products/:id
 // @access  Public
 const getProductById = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
-  if (product) {
-    return res.status(200).json(product);
-  } else {
+  if (!product) {
     res.status(404);
     throw new Error("Product not found");
   }
+  res.status(200).json(product);
 });
 
 // @desc    Create a product
@@ -45,6 +72,10 @@ const getProductById = asyncHandler(async (req, res) => {
 const createProduct = asyncHandler(async (req, res) => {
   const { name, price, image, brand, category, countInStock, description } = req.body;
 
+  if (!name || !price || !image || !description || !countInStock) {
+    res.status(400);
+    throw new Error("Please fill all the fields");
+  }
   const product = {
     name,
     price,
@@ -53,9 +84,15 @@ const createProduct = asyncHandler(async (req, res) => {
     brand,
     category,
     countInStock,
-    numReviews: 0,
     description,
   };
+
+  if (brand) {
+    product.brand = brand;
+  }
+  if (category) {
+    product.category = category;
+  }
   const createdProduct = await Product.create(product);
   res.status(201).json(createdProduct);
 });
@@ -65,34 +102,53 @@ const createProduct = asyncHandler(async (req, res) => {
 // @access  Private/admin
 const updateProduct = asyncHandler(async (req, res) => {
   const { name, price, description, image, brand, category, countInStock } = req.body;
+
   const product = await Product.findById(req.params.id);
 
-  if (product) {
-    product.name = name || product.name;
-    product.price = price || product.price;
-    product.description = description || product.description;
-    product.image = image || product.image;
-    product.brand = brand || product.brand;
-    product.category = category || product.category;
-    product.countInStock = countInStock || product.countInStock;
-
-    const updatedProduct = await product.save();
-
-    res.json(updatedProduct);
-  } else {
+  if (!product) {
     res.status(404);
     throw new Error("Product not found");
   }
+  product.name = name ?? product.name;
+  product.price = price ?? product.price;
+  product.description = description ?? product.description;
+  product.image = image ?? product.image;
+  product.brand = brand ?? product.brand;
+  product.category = category ?? product.category;
+  product.countInStock = countInStock ?? product.countInStock;
+
+  const updatedProduct = await product.save();
+
+  res.status(200).json(updatedProduct);
 });
+
 const getProductsByCategory = asyncHandler(async (req, res) => {
-  try {
-    const { category } = req.params;
-    const products = await Product.find({ category });
-    res.status(200).json(products);
-  } catch (error) {
+  const { category } = req.params;
+
+  // Find the main category document by name
+  const categoryDoc = await Category.findOne({ name: category });
+
+  if (!categoryDoc) {
     res.status(404);
     throw new Error("Category not found");
   }
+
+  // Recursive function to get all child category IDs
+  const getAllCategoryIds = async (catId) => {
+    const ids = [catId];
+    const children = await Category.find({ parent: catId });
+    for (const child of children) {
+      ids.push(...(await getAllCategoryIds(child._id)));
+    }
+    return ids;
+  };
+
+  const categoryIds = await getAllCategoryIds(categoryDoc._id);
+
+  // Now find products in any of these categories
+  const products = await Product.find({ category: { $in: categoryIds } });
+
+  res.status(200).json(products);
 });
 
 // @desc    Delete a product
@@ -102,18 +158,29 @@ const deleteProduct = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
 
   if (product) {
+    // Remove image file if it exists
+    if (product.image) {
+      const imagePath = path.join(__dirname, "../uploads", path.basename(product.image));
+      fs.unlink(imagePath, (err) => {
+        if (err) {
+          console.error("Failed to delete image:", err);
+        }
+      });
+    }
+
+    await product.deleteOne();
+    res.json({ message: "Product removed" });
+  } else {
+    res.status(404);
+    throw new Error("Product not found");
+  }
+
+  /* if (product) {
     await Product.deleteOne({ _id: product._id });
     res.status(200).json({ message: "Product deleted" });
   } else {
     res.status(404);
     throw new Error("Resource not found");
-  }
-  /*  try {
-    const product = await Product.findByIdAndDelete(req.params.id);
-    res.status(200).json(product);
-  } catch (error) {
-    res.status(404);
-    throw new Error("Product not found");
   } */
 });
 // @desc    Create a new review
@@ -186,13 +253,14 @@ const updateStock = asyncHandler(async (req, res) => {
   }
 });
 const createShippingPrice = asyncHandler(async (req, res) => {
-  const { timeToDeliver, shippingFee } = req.body;
+  const { timeToDeliver, shippingFee, minDeliveryCost } = req.body;
 
-  const delivery = await Delivery.findById("66d4d0ca3a5785489f6fc255");
+  const delivery = await Delivery.findOne({});
 
   if (delivery) {
     delivery.timeToDeliver = timeToDeliver || delivery.timeToDeliver;
     delivery.shippingFee = shippingFee || delivery.shippingFee;
+    delivery.minDeliveryCost = minDeliveryCost || delivery.minDeliveryCost;
 
     const updatedDelivery = await delivery.save();
 
@@ -200,14 +268,22 @@ const createShippingPrice = asyncHandler(async (req, res) => {
   }
 });
 const getDeliveryStatus = asyncHandler(async (req, res) => {
-  const delivery = await Delivery.findById("66d4d0ca3a5785489f6fc255");
+  const delivery = await Delivery.find({});
 
   res.json(delivery);
 });
 
+const createDiscount = asyncHandler(async (req, res) => {
+  const { discountBy, category } = req.body;
+
+  const discount = await Discount.create({ discountBy, category });
+
+  res.json(discount);
+});
+
 const updateDiscounts = asyncHandler(async (req, res) => {
   const { discountBy, category } = req.body;
-  const discount = await Discount.findById("66d4e088b6f8fec8940ed64c");
+  const discount = await Discount.findOne({});
   if (discount) {
     discount.discountBy = discountBy || discount.discountBy;
     discount.category = category || discount.category;
@@ -217,8 +293,15 @@ const updateDiscounts = asyncHandler(async (req, res) => {
     res.json(updatedDiscount);
   }
 });
+
+const deleteDiscount = asyncHandler(async (req, res) => {
+  const { id } = req.body;
+  const deleteDiscount = await Discount.findOneAndDelete(id);
+  res.json(deleteDiscount);
+});
+
 const getDiscountStatus = asyncHandler(async (req, res) => {
-  const discount = await Discount.findById("66d4e088b6f8fec8940ed64c");
+  const discount = await Discount.find({});
 
   res.json(discount);
 });
@@ -245,6 +328,10 @@ const deleteCategory = asyncHandler(async (req, res) => {
   const { name } = req.body;
 
   const deleteCategory = await Category.findOneAndDelete({ name: name });
+  if (!deleteCategory) {
+    res.status(404);
+    throw new Error("Category not found");
+  }
   res.json(deleteCategory);
 });
 module.exports = {
@@ -262,7 +349,9 @@ module.exports = {
   updateDiscounts,
   getDiscountStatus,
   getLatestProducts,
+  createDiscount,
   createCategory,
   getCategories,
   deleteCategory,
+  deleteDiscount,
 };

@@ -9,6 +9,7 @@ const {
   updateOrderToDeliverd,
   getOrders,
   getUserOrders,
+  updateOrderToCanceled,
 } = require("../controllers/orderControllers");
 
 // /api/orders
@@ -18,5 +19,6 @@ router.route("/mine").get(protect, getMyOrders);
 router.get("/:id", protect, getOrderById);
 router.route("/:id/pay").put(protect, updateOrderToPaid);
 router.route("/:id/deliver").put(protect, admin, updateOrderToDeliverd);
+router.route("/:id/cancel").put(protect, admin, updateOrderToCanceled);
 
 module.exports = router;

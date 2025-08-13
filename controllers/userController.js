@@ -2,27 +2,76 @@ const asyncHandler = require("../middleware/asyncHandler");
 const User = require("../models/userModel");
 const Address = require("../models/addressModel");
 const generateToken = require("../utils/generateToken");
+const bcrypt = require("bcrypt");
 
-// @desc    Auth user & get token
+// @desc    Login user & get token
 // @route   POST /api/users/login
 // @access  public
-const authUser = asyncHandler(async (req, res) => {
+const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
+
+  if (!email || !password) {
+    res.status(400);
+    throw new Error("Invalid credentials");
+  }
+
+  // Check if user exists
   const user = await User.findOne({ email });
-  if (user && (await user.matchPassword(password))) {
-    generateToken(res, user._id);
-    res.status(200);
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      isAdmin: user.isAdmin,
-    });
-  } else {
+  if (!user) {
     res.status(401);
     throw new Error("Invalid email or password");
   }
+  // Check if password matches
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    res.status(401);
+    throw new Error("Invalid email or password");
+  }
+  generateToken(res, user._id);
+  res.status(200).json({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    isAdmin: user.isAdmin,
+  });
+});
+
+// @desc    Login user & get token
+// @route   POST /api/admin/login
+// @access  public
+const loginAdmin = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    res.status(400);
+    throw new Error("Invalid credentials");
+  }
+
+  // Check if user exists
+  const user = await User.findOne({ email });
+  if (!user) {
+    res.status(401);
+    throw new Error("Invalid email or password");
+  }
+  // Check if password matches
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    res.status(401);
+    throw new Error("Invalid email or password");
+  }
+  if (!user.isAdmin) {
+    res.status(401);
+    throw new Error("Unauthorized");
+  }
+  generateToken(res, user._id);
+  res.status(200).json({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    isAdmin: user.isAdmin,
+  });
 });
 
 // @desc    Register user
@@ -30,27 +79,36 @@ const authUser = asyncHandler(async (req, res) => {
 // @access  public
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password, phone } = req.body;
+
+  if (!name || !email || !password || !phone) {
+    res.status(400);
+    throw new Error("Invalid user data");
+  }
+
   const userExist = await User.findOne({ email });
   if (userExist) {
     res.status(400);
     throw new Error("User already exists");
   }
 
-  const user = await User.create({ name, email, password, phone });
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
 
-  if (user) {
-    generateToken(res, user._id);
-    res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      isAdmin: user.isAdmin,
-    });
-  } else {
+  const user = await User.create({ name, email, password: hashedPassword, phone });
+
+  if (!user) {
     res.status(400);
-    throw new Error("Invalid user data");
+    throw new Error("User creation failed");
   }
+
+  generateToken(res, user._id);
+  res.status(201).json({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    isAdmin: user.isAdmin,
+  });
 });
 
 // @desc    Logout user / clear cookie
@@ -69,17 +127,17 @@ const logoutUser = asyncHandler(async (req, res) => {
 // @access  Private
 const getUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id);
-  if (user) {
-    res.status(200).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      isAdmin: user.isAdmin,
-    });
-  } else {
+
+  if (!user) {
     res.status(404);
     throw new Error("User not found");
   }
+  res.status(200).json({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    isAdmin: user.isAdmin,
+  });
 });
 
 // @desc    Update user profile
@@ -87,6 +145,7 @@ const getUserProfile = asyncHandler(async (req, res) => {
 // @access  Private
 const updateUserProfile = asyncHandler(async (req, res) => {
   const { name, email, phone } = req.body;
+
   const user = await User.findById(req.user._id);
   if (user) {
     user.name = name || user.name;
@@ -114,12 +173,12 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 // @route   PUT /api/users/address
 // @access  Private
 const updateAddress = asyncHandler(async (req, res) => {
-  const { province, city, block, street, house } = req.body;
+  const { governorate, city, block, street, house } = req.body;
 
   const address = await Address.findOne({ user: req.user._id });
 
   if (address) {
-    address.province = province || address.province;
+    address.governorate = governorate || address.governorate;
     address.city = city || address.city;
     address.block = block || address.block;
     address.street = street || address.street;
@@ -138,18 +197,14 @@ const updateAddress = asyncHandler(async (req, res) => {
 // @route   GET /api/users
 // @access  Private/admin
 const getUsers = asyncHandler(async (req, res) => {
-  const pageSize = 9;
-  const page = Number(req.query.pageNumber) || 1;
-  /*   const keyword = req.query.keyword ? { email: { $regex: req.query.keyword, $options: "i" } } : {};
-   */ const totalUsers = await User.countDocuments();
+  const totalUsers = await User.find({}).select("-password");
 
-  const users = await User.find({})
-    .select("-password")
-    .sort({ createdAt: -1 })
-    .limit(pageSize)
-    .skip(pageSize * (page - 1));
+  if (!totalUsers || totalUsers.length === 0) {
+    res.status(404);
+    throw new Error("No users found");
+  }
 
-  res.status(200).json({ users, totalUsers, page, pages: Math.ceil(totalUsers / pageSize) });
+  res.status(200).json(totalUsers);
 });
 
 // @desc    Get user by id
@@ -212,10 +267,10 @@ const updateUser = asyncHandler(async (req, res) => {
 });
 
 const createAddress = asyncHandler(async (req, res) => {
-  const { province, city, block, street, house } = req.body;
+  const { governorate, city, block, street, house } = req.body;
   const newAddress = await Address.create({
     user: req.user._id,
-    province,
+    governorate,
     city,
     block,
     street,
@@ -238,7 +293,7 @@ const getAddress = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  authUser,
+  loginUser,
   registerUser,
   logoutUser,
   getUserProfile,
@@ -254,4 +309,5 @@ module.exports = {
   createAddress,
   getAddress,
   updateAddress,
+  loginAdmin,
 };

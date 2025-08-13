@@ -7,7 +7,7 @@ const addressSchema = new Schema({
     required: true,
     ref: "User",
   },
-  province: {
+  governorate: {
     type: String,
     required: true,
   },

@@ -11,6 +11,11 @@ const deliverySchema = new mongoose.Schema({
     default: 0,
     required: true,
   },
+  minDeliveryCost: {
+    type: Number,
+    default: 0,
+    requried: true,
+  },
 });
 
 const Delivery = mongoose.model("Delivery", deliverySchema);
