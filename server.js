@@ -26,7 +26,7 @@ const app = express();
 // CORS
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:5173", "https://backend-wxs4.onrender.com"],
+    origin: ["http://localhost:3000", "http://localhost:5173", "https://admin-1-qw2b.onrender.com"],
     credentials: true,
   })
 );
