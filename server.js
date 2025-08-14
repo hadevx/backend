@@ -29,7 +29,12 @@ const app = express();
 // CORS
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:5173", "https://admin-1-qw2b.onrender.com"],
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "https://admin-1-qw2b.onrender.com",
+      "https://admin-production-ce84.up.railway.app/",
+    ],
     credentials: true,
   })
 );
