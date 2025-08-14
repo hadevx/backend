@@ -21,12 +21,8 @@ const cookieParser = require("cookie-parser");
 dotenv.config();
 
 // Connect to DB BEFORE starting server
-dbConnect()
-  .then(() => console.log("✅ MongoDB connected"))
-  .catch((err) => {
-    console.error("❌ Data Base Error:", err);
-    process.exit(1);
-  });
+dbConnect();
+
 // Intialize express app
 const app = express();
 
