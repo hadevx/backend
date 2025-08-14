@@ -65,6 +65,6 @@ app.get("/", (req, res) => {
 app.use(notFound);
 app.use(errorHandle);
 
-app.listen(4001, (req, res) => {
-  console.log("Connecting to DB & Listening on port " + 4001);
+app.listen(process.env.PORT, (req, res) => {
+  console.log("Connecting to DB & Listening on port " + process.env.PORT);
 });

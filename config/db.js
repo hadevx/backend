@@ -1,12 +1,8 @@
 const mongoose = require("mongoose");
 
-const dotenv = require("dotenv");
-dotenv.config();
 const dbConnect = async () => {
   try {
-    await mongoose.connect(
-      "mongodb+srv://hkosaimi:12345Hussain@cluster0.q8b7yys.mongodb.net/ecomm"
-    );
+    await mongoose.connect(process.env.MONGO_URI);
   } catch (error) {
     console.log(`Data Base Error: ${error.message}`);
     process.exit(1);
