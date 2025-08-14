@@ -129,11 +129,11 @@ const updateOrderToCanceled = asyncHandler(async (req, res) => {
 });
 
 // @desc    Get all orders
-// @route   PUT /api/orders
+// @route   GET /api/orders
 // @access  Private/admin
 const getOrders = asyncHandler(async (req, res) => {
   try {
-    const orders = await Order.find({}).sort({ createdAt: -1 }).limit(2).lean();
+    const orders = await Order.find({}).sort({ createdAt: -1 }).populate("user", "name email"); // populate user, selecting only name and email
     res.status(200).json(orders);
   } catch (err) {
     console.error(err);

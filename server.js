@@ -20,6 +20,13 @@ const cookieParser = require("cookie-parser");
 
 dotenv.config();
 
+// Connect to DB BEFORE starting server
+dbConnect()
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch((err) => {
+    console.error("❌ Data Base Error:", err);
+    process.exit(1);
+  });
 // Intialize express app
 const app = express();
 
@@ -58,6 +65,5 @@ app.use(notFound);
 app.use(errorHandle);
 
 app.listen(process.env.PORT || 8000, (req, res) => {
-  dbConnect();
   console.log("Connecting to DB & Listening on port " + process.env.PORT);
 });
