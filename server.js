@@ -60,6 +60,6 @@ app.get("/", (req, res) => {
 app.use(notFound);
 app.use(errorHandle);
 
-app.listen(process.env.PORT || 8000, (req, res) => {
+app.listen(process.env.PORT || 3000, (req, res) => {
   console.log("Connecting to DB & Listening on port " + process.env.PORT);
 });
