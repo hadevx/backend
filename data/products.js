@@ -1,7 +1,7 @@
 const products = [
   {
     name: "Bag",
-    image: "http://localhost:4001/uploads/bag.png",
+    image: "http://localhost:4001/uploads/bag.webp",
     description:
       "Elevate your travel experience with the luxurious Pinnacle Posh Pack. Crafted from genuine leather, this stylish backpack is tailor-made for modern adventurers. It's handmade, durable, and exudes a touch of sophistication. Upgrade your travel game today!",
     brand: "TechCorp",

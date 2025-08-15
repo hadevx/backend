@@ -1,4 +1,53 @@
-const path = require("path");
+const express = require("express");
+const multer = require("multer");
+const cloudinary = require("cloudinary").v2;
+const streamifier = require("streamifier");
+
+const router = express.Router();
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: "dbltp1pxl",
+  api_key: "877575371979227",
+  api_secret: "40l19WfxYNktJp0uhUvk3sGN7BY",
+});
+
+// Multer memory storage
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Upload route
+router.post("/", upload.single("image"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+  const streamUpload = (reqFile) => {
+    return new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: "your-folder-name" },
+        (error, result) => {
+          if (result) resolve(result);
+          else reject(error);
+        }
+      );
+      streamifier.createReadStream(reqFile.buffer).pipe(stream);
+    });
+  };
+
+  try {
+    const result = await streamUpload(req.file);
+
+    res.json({
+      message: "Image uploaded",
+      image: result.secure_url, // the URL to display
+      publicId: result.public_id, // save this in DB when product is created
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+module.exports = router;
+
+/* const path = require("path");
 const express = require("express");
 const multer = require("multer");
 
@@ -40,3 +89,4 @@ router.post("/", upload.single("image"), (req, res) => {
 });
 
 module.exports = router;
+ */

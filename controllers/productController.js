@@ -5,7 +5,7 @@ const Discount = require("../models/discountModel");
 const Category = require("../models/categoryModel");
 const fs = require("fs");
 const path = require("path");
-
+const cloudinary = require("cloudinary").v2;
 // @desc    Fetch all products
 // @route   GET /api/products
 // @access  Public
@@ -70,29 +70,26 @@ const getProductById = asyncHandler(async (req, res) => {
 // @route   POST /api/products
 // @access  Private/admin
 const createProduct = asyncHandler(async (req, res) => {
-  const { name, price, image, brand, category, countInStock, description } = req.body;
+  const { name, price, image, imagePublicId, brand, category, countInStock, description } =
+    req.body;
 
   if (!name || !price || !image || !description || !countInStock) {
     res.status(400);
     throw new Error("Please fill all the fields");
   }
+
   const product = {
     name,
     price,
     user: req.user._id,
     image,
-    brand,
-    category,
+    imagePublicId, // save Cloudinary public_id
+    brand: brand || "",
+    category: category || "",
     countInStock,
     description,
   };
 
-  if (brand) {
-    product.brand = brand;
-  }
-  if (category) {
-    product.category = category;
-  }
   const createdProduct = await Product.create(product);
   res.status(201).json(createdProduct);
 });
@@ -158,6 +155,24 @@ const deleteProduct = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
 
   if (product) {
+    // Remove image from Cloudinary if it exists
+    if (product.imagePublicId) {
+      try {
+        await cloudinary.uploader.destroy(product.imagePublicId);
+      } catch (err) {
+        console.error("Failed to delete image from Cloudinary:", err);
+      }
+    }
+
+    await product.deleteOne();
+    res.json({ message: "Product removed" });
+  } else {
+    res.status(404);
+    throw new Error("Product not found");
+  }
+  /*   const product = await Product.findById(req.params.id);
+
+  if (product) {
     // Remove image file if it exists
     if (product.image) {
       const imagePath = path.join(__dirname, "../uploads", path.basename(product.image));
@@ -173,14 +188,6 @@ const deleteProduct = asyncHandler(async (req, res) => {
   } else {
     res.status(404);
     throw new Error("Product not found");
-  }
-
-  /* if (product) {
-    await Product.deleteOne({ _id: product._id });
-    res.status(200).json({ message: "Product deleted" });
-  } else {
-    res.status(404);
-    throw new Error("Resource not found");
   } */
 });
 // @desc    Create a new review

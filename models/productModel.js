@@ -14,7 +14,10 @@ const productSchema = new Schema(
     },
     image: {
       type: String,
-      requierd: true,
+      required: true, // fixed typo
+    },
+    imagePublicId: {
+      type: String, // Cloudinary public_id for deletion
     },
     brand: {
       type: String,
@@ -24,7 +27,7 @@ const productSchema = new Schema(
     },
     description: {
       type: String,
-      requierd: true,
+      required: true, // fixed typo
     },
     price: {
       type: Number,
@@ -32,7 +35,7 @@ const productSchema = new Schema(
     },
     countInStock: {
       type: Number,
-      requierd: true,
+      required: true, // fixed typo
       default: 0,
     },
   },
@@ -40,6 +43,7 @@ const productSchema = new Schema(
     timestamps: true,
   }
 );
+
 const Product = mongoose.model("Product", productSchema);
 
 module.exports = Product;
