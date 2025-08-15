@@ -316,7 +316,8 @@ const forgetPassword = asyncHandler(async (req, res) => {
 });
 
 const resetPassword = asyncHandler(async (req, res) => {
-  const resetTokenHash = crypto.createHash("sha256").update(req.params.token).digest("hex");
+  const { token } = req.params;
+  const resetTokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
   try {
     const user = await User.findOne({

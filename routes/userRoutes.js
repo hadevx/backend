@@ -40,6 +40,6 @@ router.get("/:id", protect, admin, getUserById);
 router.post("/admin", loginAdmin);
 
 router.post("/forget-password", forgetPassword);
-router.post("/reset-password", resetPassword);
+router.post("/reset-password/:token", resetPassword);
 
 module.exports = router;
