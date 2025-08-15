@@ -3,7 +3,7 @@ const User = require("../models/userModel");
 const Address = require("../models/addressModel");
 const generateToken = require("../utils/generateToken");
 const bcrypt = require("bcrypt");
-const { sendEmail } = require("../utils/emailService");
+const { sendRestPasswordEmail } = require("../utils/emailService");
 const crypto = require("crypto");
 
 // @desc    Login user & get token
@@ -310,7 +310,11 @@ const forgetPassword = asyncHandler(async (req, res) => {
   await user.save();
 
   const resetURL = `https://admin-production-ce84.up.railway.app/admin/reset-password/${resetToken}`;
-  await sendEmail("hn98q8@gmail.com", "Password Reset", `Click here to reset: ${resetURL}`);
+  await sendRestPasswordEmail(
+    "hn98q8@gmail.com",
+    "Password Reset",
+    `Click here to reset: ${resetURL}`
+  );
 
   res.json({ message: "Reset link sent to email" });
 });

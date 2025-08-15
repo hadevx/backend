@@ -66,7 +66,7 @@ const sendOrderEmail = async (orderDetails) => {
   }
 };
 
-const sendEmail = async (to, subject, text) => {
+const sendRestPasswordEmail = async (to, subject, text) => {
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -82,4 +82,4 @@ const sendEmail = async (to, subject, text) => {
     text,
   });
 };
-module.exports = { sendOrderEmail, sendEmail };
+module.exports = { sendOrderEmail, sendRestPasswordEmail };
