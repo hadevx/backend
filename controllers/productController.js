@@ -98,7 +98,8 @@ const createProduct = asyncHandler(async (req, res) => {
 // @route   PUT /api/products/:id
 // @access  Private/admin
 const updateProduct = asyncHandler(async (req, res) => {
-  const { name, price, description, image, brand, category, countInStock } = req.body;
+  const { name, price, description, image, imagePublicId, brand, category, countInStock } =
+    req.body;
 
   const product = await Product.findById(req.params.id);
 
@@ -106,10 +107,25 @@ const updateProduct = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Product not found");
   }
+
+  // Delete old image if a new one is uploaded
+  if (image && product.imagePublicId && product.imagePublicId !== imagePublicId) {
+    try {
+      const result = await cloudinary.uploader.destroy(product.imagePublicId);
+      if (result.result !== "ok" && result.result !== "not found") {
+        console.warn("Failed to delete old image:", result);
+      }
+    } catch (err) {
+      console.error("Cloudinary deletion error:", err.message);
+    }
+  }
+
+  // Update fields
   product.name = name ?? product.name;
   product.price = price ?? product.price;
   product.description = description ?? product.description;
   product.image = image ?? product.image;
+  product.imagePublicId = imagePublicId ?? product.imagePublicId; // save new publicId
   product.brand = brand ?? product.brand;
   product.category = category ?? product.category;
   product.countInStock = countInStock ?? product.countInStock;

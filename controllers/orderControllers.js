@@ -1,6 +1,6 @@
 const asyncHandler = require("../middleware/asyncHandler");
 const Order = require("../models/orderModel");
-const sendOrderEmail = require("../utils/emailService");
+const { sendOrderEmail } = require("../utils/emailService");
 
 // @desc    Create new order
 // @route   POST /api/orders

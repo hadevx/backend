@@ -16,6 +16,8 @@ const {
   getAddress,
   updateAddress,
   loginAdmin,
+  forgetPassword,
+  resetPassword,
 } = require("../controllers/userController");
 
 /* http://localhost:4001/api/users */
@@ -36,5 +38,8 @@ router.put("/:id", protect, admin, updateUser);
 router.delete("/:id", protect, admin, deleteUser);
 router.get("/:id", protect, admin, getUserById);
 router.post("/admin", loginAdmin);
+
+router.post("/forget-password", forgetPassword);
+router.post("/reset-password", resetPassword);
 
 module.exports = router;

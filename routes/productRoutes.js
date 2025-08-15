@@ -45,4 +45,16 @@ router
   .put(protect, admin, updateProduct)
   .delete(protect, admin, deleteProduct);
 
+router.post("/delete-image", async (req, res) => {
+  try {
+    const { publicId } = req.body;
+    if (!publicId) return res.status(400).json({ message: "Public ID required" });
+
+    await cloudinary.uploader.destroy(publicId);
+    res.json({ message: "Old image deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to delete image", error: err.message });
+  }
+});
+
 module.exports = router;

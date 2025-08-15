@@ -66,4 +66,20 @@ const sendOrderEmail = async (orderDetails) => {
   }
 };
 
-module.exports = sendOrderEmail;
+const sendEmail = async (to, subject, text) => {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: "hn98q8@gmail.com",
+      pass: "ikbh asif phkr qzmg",
+    },
+  });
+
+  await transporter.sendMail({
+    from: "hn98q8@gmail.com",
+    to,
+    subject,
+    text,
+  });
+};
+module.exports = { sendOrderEmail, sendEmail };

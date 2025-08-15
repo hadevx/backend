@@ -3,6 +3,8 @@ const User = require("../models/userModel");
 const Address = require("../models/addressModel");
 const generateToken = require("../utils/generateToken");
 const bcrypt = require("bcrypt");
+const { sendEmail } = require("../utils/emailService");
+const crypto = require("crypto");
 
 // @desc    Login user & get token
 // @route   POST /api/users/login
@@ -292,6 +294,49 @@ const getAddress = asyncHandler(async (req, res) => {
   }
 });
 
+const forgetPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+  const resetToken = crypto.randomBytes(32).toString("hex");
+  const resetTokenHash = crypto.createHash("sha256").update(resetToken).digest("hex");
+
+  user.resetPasswordToken = resetTokenHash;
+  user.resetPasswordExpire = Date.now() + 15 * 60 * 1000; // 15 mins
+  await user.save();
+
+  const resetURL = `https://admin-production-ce84.up.railway.app/admin/reset-password/${resetToken}`;
+  await sendEmail("hn98q8@gmail.com", "Password Reset", `Click here to reset: ${resetURL}`);
+
+  res.json({ message: "Reset link sent to email" });
+});
+
+const resetPassword = asyncHandler(async (req, res) => {
+  const resetTokenHash = crypto.createHash("sha256").update(req.params.token).digest("hex");
+
+  try {
+    const user = await User.findOne({
+      resetPasswordToken: resetTokenHash,
+      resetPasswordExpire: { $gt: Date.now() },
+    });
+    if (!user) return res.status(400).json({ message: "Invalid or expired token" });
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(req.body.password, salt);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+
+    res.json({ message: "Password updated successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = {
   loginUser,
   registerUser,
@@ -310,4 +355,6 @@ module.exports = {
   getAddress,
   updateAddress,
   loginAdmin,
+  forgetPassword,
+  resetPassword,
 };
