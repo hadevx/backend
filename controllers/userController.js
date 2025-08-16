@@ -117,9 +117,23 @@ const registerUser = asyncHandler(async (req, res) => {
 // @route   POST /api/users/logout
 // @access  Private
 const logoutUser = asyncHandler(async (req, res) => {
-  res.cookie("user_jwt", "", { httpOnly: true, expires: new Date(0) });
-  res.cookie("admin_jwt", "", { httpOnly: true, expires: new Date(0) });
-  res.status(200).json({ message: "Logged out successfully" });
+  res.cookie("user_jwt", "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV !== "development",
+    sameSite: "strict",
+    expires: new Date(0),
+  });
+  res.status(200).json({ message: "User logged out successfully" });
+});
+
+const logoutAdmin = asyncHandler(async (req, res) => {
+  res.cookie("admin_jwt", "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV !== "development",
+    sameSite: "strict",
+    expires: new Date(0),
+  });
+  res.status(200).json({ message: "Admin logged out successfully" });
 });
 
 // @desc    Get user profile
@@ -382,4 +396,5 @@ module.exports = {
   loginAdmin,
   forgetPassword,
   resetPassword,
+  logoutAdmin,
 };

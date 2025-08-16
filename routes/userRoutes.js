@@ -39,6 +39,8 @@ router.delete("/:id", protectAdmin, deleteUser);
 router.get("/:id", protectAdmin, getUserById);
 router.post("/admin", loginAdmin);
 
+router.post("/admin/logout", logoutUser);
+
 router.post("/forget-password", forgetPassword);
 router.post("/reset-password/:token", resetPassword);
 
