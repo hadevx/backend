@@ -32,9 +32,8 @@ app.use(
     origin: [
       "http://localhost:3000",
       "http://localhost:5173",
-      "https://admin-1-qw2b.onrender.com",
-      "https://admin-production-ce84.up.railway.app",
-      "https://storefront-production-39f2.up.railway.app",
+      "https://storefront-beta.up.railway.app",
+      "https://admin-beta.up.railway.app",
     ],
     credentials: true,
   })
