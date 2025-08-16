@@ -15,12 +15,12 @@ const {
 // /api/orders
 router.get("/user-orders/:id", getUserOrders);
 
-router.route("/").post(protectUser, addOrderItems).get(protectUser, protectAdmin, getOrders);
+router.route("/").post(protectUser, addOrderItems).get(protectAdmin, getOrders);
 
 router.route("/mine").get(protectUser, getMyOrders);
 router.get("/:id", protectUser, getOrderById);
 router.route("/:id/pay").put(protectUser, updateOrderToPaid);
-router.route("/:id/deliver").put(protectUser, protectAdmin, updateOrderToDeliverd);
-router.route("/:id/cancel").put(protectUser, protectAdmin, updateOrderToCanceled);
+router.route("/:id/deliver").put(protectAdmin, updateOrderToDeliverd);
+router.route("/:id/cancel").put(protectAdmin, updateOrderToCanceled);
 
 module.exports = router;
