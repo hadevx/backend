@@ -70,13 +70,13 @@ const sendRestPasswordEmail = async (to, subject, text) => {
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-      user: "hn98q8@gmail.com",
-      pass: "ikbh asif phkr qzmg",
+      user: process.env.CUSTOMER_SERVICE_EMAIL,
+      pass: process.env.CUSTOMER_SERVICE_PASS,
     },
   });
 
   await transporter.sendMail({
-    from: "hn98q8@gmail.com",
+    from: process.env.CUSTOMER_SERVICE_EMAIL,
     to,
     subject,
     text,

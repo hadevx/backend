@@ -312,8 +312,21 @@ const forgetPassword = asyncHandler(async (req, res) => {
   const resetURL = `https://admin-production-ce84.up.railway.app/admin/reset-password/${resetToken}`;
   await sendRestPasswordEmail(
     "hn98q8@gmail.com",
-    "Password Reset",
-    `Click here to reset: ${resetURL}`
+    "Password Reset Request",
+    `
+  Hello,
+
+  We received a request to reset your password.  
+  If you made this request, please click the link below to set a new password:
+
+  ${resetURL}
+
+  If you did not request a password reset, please ignore this email.  
+  For security, this link will expire in 15 minutes.
+
+  Best regards,  
+  Your Support Team
+  `
   );
 
   res.json({ message: "Reset link sent to email" });
