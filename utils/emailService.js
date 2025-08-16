@@ -5,8 +5,8 @@ const User = require("../models/userModel");
 const transporter = nodemailer.createTransport({
   service: "gmail", // or use your SMTP service provider
   auth: {
-    user: "hn98q8@gmail.com", // Your email address (environment variable)
-    pass: "ikbh asif phkr qzmg", // Your email password (environment variable)
+    user: process.env.CUSTOMER_SERVICE_EMAIL, // Your email address (environment variable)
+    pass: process.env.CUSTOMER_SERVICE_PASS, // Your email password (environment variable)
   },
 });
 
@@ -15,8 +15,8 @@ const sendOrderEmail = async (orderDetails) => {
   const user = await User.findById(orderDetails.user);
 
   const mailOptions = {
-    from: process.env.ADMIN_EMAIL,
-    to: "hkosaimi@gmail.com", // Send the email to the admin
+    from: process.env.CUSTOMER_SERVICE_EMAIL,
+    to: "hn98q8@gmail.com", // Send the email to the admin
     subject: "You've got a new order",
     html: `<h1>You Have New Order</h1>
            <p>Order ID: <strong>${orderDetails?._id}</strong></p>
