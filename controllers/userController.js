@@ -103,7 +103,7 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error("User creation failed");
   }
 
-  generateToken(res, user._id);
+  generateToken(res, user._id, user);
   res.status(201).json({
     _id: user._id,
     name: user.name,
