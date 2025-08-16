@@ -23,27 +23,27 @@ const { protectUser, protectAdmin } = require("../middleware/authMiddleware");
 
 // /api/products
 router.get("/product/:id", getProductById);
-router.post("/create-category", createCategory);
-router.delete("/category", deleteCategory);
+router.post("/create-category", protectAdmin, createCategory);
+router.delete("/category", protectAdmin, deleteCategory);
 router.get("/category", getCategories);
 router.get("/latest", getLatestProducts);
-router.put("/delivery", createShippingPrice);
+router.put("/delivery", protectAdmin, createShippingPrice);
 
-router.post("/discount", createDiscount);
-router.put("/discount", updateDiscounts);
+router.post("/discount", protectAdmin, createDiscount);
+router.put("/discount", protectAdmin, updateDiscounts);
 router.get("/discount", getDiscountStatus);
-router.delete("/discount", deleteDiscount);
+router.delete("/discount", protectAdmin, deleteDiscount);
 
 router.get("/delivery", getDeliveryStatus);
 router.post("/update-stock", updateStock);
 router.get("/category/:category", getProductsByCategory);
 router.get("/", getProducts);
-router.post("/", protectUser, protectAdmin, createProduct);
+router.post("/", protectAdmin, createProduct);
 router
   .route("/:id")
   .get(getProductById)
-  .put(protectUser, protectAdmin, updateProduct)
-  .delete(protectUser, protectAdmin, deleteProduct);
+  .put(protectAdmin, updateProduct)
+  .delete(protectAdmin, deleteProduct);
 
 router.post("/delete-image", async (req, res) => {
   try {
