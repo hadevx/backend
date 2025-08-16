@@ -29,7 +29,7 @@ const loginUser = asyncHandler(async (req, res) => {
     res.status(401);
     throw new Error("Invalid email or password");
   }
-  generateToken(res, user._id);
+  generateToken(res, user._id, user);
   res.status(200).json({
     _id: user._id,
     name: user.name,
@@ -66,7 +66,7 @@ const loginAdmin = asyncHandler(async (req, res) => {
     res.status(401);
     throw new Error("Unauthorized");
   }
-  generateToken(res, user._id);
+  generateToken(res, user._id, user);
   res.status(200).json({
     _id: user._id,
     name: user.name,
@@ -282,16 +282,25 @@ const createAddress = asyncHandler(async (req, res) => {
   res.status(201).json(newAddress);
 });
 
+// @desc    Get user address
+// @route   GET /api/users/address/:userId
+// @access  Private
 const getAddress = asyncHandler(async (req, res) => {
   const { userId } = req.params;
 
+  if (!userId) {
+    res.status(400);
+    throw new Error("User ID is required");
+  }
+
   const address = await Address.findOne({ user: userId });
-  if (address) {
-    res.status(200).json(address);
-  } else {
+
+  if (!address) {
     res.status(404);
     throw new Error("Address not found");
   }
+
+  res.status(200).json(address);
 });
 
 const forgetPassword = asyncHandler(async (req, res) => {

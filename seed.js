@@ -61,15 +61,30 @@ const seedData = async () => {
   }
 };
 
+const seedCustom = async () => {
+  try {
+    await User.create(users[0]);
+    await Delivery.create({ timeToDeliver: "today", shippingFee: 0, minDeliveryCost: 0 });
+
+    await Store.create({ status: "active" });
+
+    console.log("Data seeded");
+    process.exit();
+  } catch (error) {
+    console.log(`${error}`);
+    process.exit(1);
+  }
+};
+
 const destroyData = async () => {
   try {
     await Order.deleteMany();
     await Product.deleteMany();
     await User.deleteMany();
     await Address.deleteMany();
-    await Delivery.deleteMany();
-    await Discount.deleteMany();
-    await Store.deleteMany();
+    // await Delivery.deleteMany();
+    // await Discount.deleteMany();
+    // await Store.deleteMany();
     await Category.deleteMany();
 
     console.log("Data destroyed");
@@ -82,6 +97,8 @@ const destroyData = async () => {
 
 if (process.argv[2] === "-d") {
   destroyData();
+} else if (process.argv[2] === "-c") {
+  seedCustom();
 } else {
   seedData();
 }
