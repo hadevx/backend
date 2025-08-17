@@ -131,10 +131,36 @@ const updateOrderToCanceled = asyncHandler(async (req, res) => {
 // @desc    Get all orders
 // @route   GET /api/orders
 // @access  Private/admin
-const getOrders = asyncHandler(async (req, res) => {
+/* const getOrders = asyncHandler(async (req, res) => {
   try {
     const orders = await Order.find({}).sort({ createdAt: -1 }).populate("user", "name email"); // populate user, selecting only name and email
     res.status(200).json(orders);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch orders" });
+  }
+}); */
+const getOrders = asyncHandler(async (req, res) => {
+  const pageSize = 5; // how many orders per page
+  const page = Number(req.query.pageNumber) || 1;
+
+  try {
+    // Count total orders
+    const count = await Order.countDocuments();
+
+    // Fetch paginated orders, newest first
+    const orders = await Order.find({})
+      .sort({ createdAt: -1 })
+      .skip(pageSize * (page - 1))
+      .limit(pageSize)
+      .populate("user", "name email");
+
+    res.status(200).json({
+      orders,
+      page,
+      pages: Math.ceil(count / pageSize), // total pages
+      total: count, // total orders
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to fetch orders" });

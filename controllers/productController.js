@@ -342,9 +342,32 @@ const createCategory = asyncHandler(async (req, res) => {
   res.status(201).json(newCategory);
 });
 
-const getCategories = asyncHandler(async (req, res) => {
+/* const getCategories = asyncHandler(async (req, res) => {
   const categories = await Category.find({});
   res.status(200).json(categories);
+}); */
+const getCategories = asyncHandler(async (req, res) => {
+  const pageSize = 10; // number of categories per page
+  const page = Number(req.query.pageNumber) || 1;
+
+  // Optional search by name
+  const keyword = req.query.keyword ? { name: { $regex: req.query.keyword, $options: "i" } } : {};
+
+  // Total count matching keyword
+  const count = await Category.countDocuments({ ...keyword });
+
+  // Fetch paginated categories
+  const categories = await Category.find({ ...keyword })
+    .sort({ name: 1 }) // optional: sort by name
+    .limit(pageSize)
+    .skip(pageSize * (page - 1));
+
+  res.status(200).json({
+    categories,
+    page,
+    pages: Math.ceil(count / pageSize),
+    total: count,
+  });
 });
 
 const deleteCategory = asyncHandler(async (req, res) => {
