@@ -56,7 +56,8 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api/category", categoryRoutes);
 app.use("/api/payment", paymentRoutes);
 
-app.use("/uploads", express.static(path.join(__dirname, "./uploads")));
+// app.use("/uploads", express.static(path.join(__dirname, "./uploads")));
+app.use("/uploads", express.static("/app/uploads"));
 
 app.get("/", (req, res) => {
   res.send("API intialized");

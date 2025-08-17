@@ -5,6 +5,38 @@ const streamifier = require("streamifier");
 
 const router = express.Router();
 
+// Make sure uploads folder exists inside container
+const uploadPath = "/app/uploads";
+if (!fs.existsSync(uploadPath)) {
+  fs.mkdirSync(uploadPath, { recursive: true });
+}
+
+// Multer disk storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadPath),
+  filename: (req, file, cb) => {
+    // Save file with timestamp + original extension
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({ storage });
+
+// Upload route
+router.post("/", upload.single("image"), (req, res) => {
+  if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+  // Return the path to access the file
+  res.json({
+    message: "Image uploaded",
+    imageUrl: `/uploads/${req.file.filename}`, // frontend can use this URL
+    filename: req.file.filename, // save this in DB if needed
+  });
+});
+
+module.exports = router;
+
+/* 
 // Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -45,7 +77,7 @@ router.post("/", upload.single("image"), async (req, res) => {
   }
 });
 
-module.exports = router;
+module.exports = router; */
 
 /* const path = require("path");
 const express = require("express");
