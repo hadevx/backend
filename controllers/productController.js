@@ -9,7 +9,7 @@ const cloudinary = require("cloudinary").v2;
 // @desc    Fetch all products
 // @route   GET /api/products
 // @access  Public
-const getProducts = asyncHandler(async (req, res) => {
+/* const getProducts = asyncHandler(async (req, res) => {
   const pageSize = 8;
   const page = Number(req.query.pageNumber) || 1;
   const keyword = req.query.keyword ? { name: { $regex: req.query.keyword, $options: "i" } } : {};
@@ -18,10 +18,10 @@ const getProducts = asyncHandler(async (req, res) => {
   const products = await Product.find({}).sort({ createdAt: -1 });
 
   res.json(products);
-});
+}); */
 
-const getProductsPagination = asyncHandler(async (req, res) => {
-  const pageSize = 8; // how many per page
+const getProducts = asyncHandler(async (req, res) => {
+  const pageSize = 5; // how many per page
   const page = Number(req.query.pageNumber) || 1;
 
   // Search filter

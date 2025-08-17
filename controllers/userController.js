@@ -210,7 +210,7 @@ const updateAddress = asyncHandler(async (req, res) => {
 // @desc    Get users
 // @route   GET /api/users
 // @access  Private/admin
-const getUsers = asyncHandler(async (req, res) => {
+/* const getUsers = asyncHandler(async (req, res) => {
   const totalUsers = await User.find({}).select("-password");
 
   if (!totalUsers || totalUsers.length === 0) {
@@ -219,6 +219,37 @@ const getUsers = asyncHandler(async (req, res) => {
   }
 
   res.status(200).json(totalUsers);
+}); */
+const getUsers = asyncHandler(async (req, res) => {
+  const pageSize = 5; // number of users per page
+  const page = Number(req.query.pageNumber) || 1;
+
+  // Optional search by name or email
+  const keyword = req.query.keyword
+    ? {
+        $or: [
+          { name: { $regex: req.query.keyword, $options: "i" } },
+          { email: { $regex: req.query.keyword, $options: "i" } },
+        ],
+      }
+    : {};
+
+  // Count total users matching the search
+  const count = await User.countDocuments({ ...keyword });
+
+  // Paginate + sort newest first
+  const users = await User.find({ ...keyword })
+    .select("-password")
+    .sort({ createdAt: -1 })
+    .limit(pageSize)
+    .skip(pageSize * (page - 1));
+
+  res.json({
+    users,
+    page,
+    pages: Math.ceil(count / pageSize), // total pages
+    total: count, // total users
+  });
 });
 
 // @desc    Get user by id
