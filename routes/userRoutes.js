@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { protectUser, protectAdmin } = require("../middleware/authMiddleware");
-const registerLimiter = require("../utils/registerLimit");
+const { registerLimiter, loginLimiter } = require("../utils/registerLimit");
 const {
   loginUser,
   registerUser,
@@ -37,7 +37,7 @@ router.get("/", protectAdmin, getUsers);
 router.put("/:id", protectAdmin, updateUser);
 router.delete("/:id", protectAdmin, deleteUser);
 router.get("/:id", protectAdmin, getUserById);
-router.post("/admin", loginAdmin);
+router.post("/admin", loginLimiter, loginAdmin);
 
 router.post("/admin/logout", logoutUser);
 
