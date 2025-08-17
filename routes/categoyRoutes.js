@@ -14,7 +14,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-const getCategories = asyncHandler(async (req, res) => {
+const getCategories = async (req, res) => {
   const pageSize = 5; // categories per page
   const page = Number(req.query.pageNumber) || 1;
 
@@ -37,7 +37,7 @@ const getCategories = asyncHandler(async (req, res) => {
     pages: Math.ceil(count / pageSize),
     total: count,
   });
-});
+};
 
 // Get all categories (flat list)
 router.get("/", getCategories);
