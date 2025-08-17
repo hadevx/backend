@@ -2,7 +2,8 @@ const express = require("express");
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
 const streamifier = require("streamifier");
-
+const path = require("path");
+const fs = require("fs");
 const router = express.Router();
 
 // Make sure uploads folder exists inside container
