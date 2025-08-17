@@ -26,7 +26,7 @@ dbConnect();
 
 // Intialize express app
 const app = express();
-app.use(helmet());
+// app.use(helmet());
 // CORS
 app.use(
   cors({

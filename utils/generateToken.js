@@ -10,7 +10,7 @@ const generateToken = (res, userId, user) => {
     // secure: process.env.NODE_ENV !== "development",
     secure: false,
     // sameSite: "strict",
-    sameSite: "lax",
+    sameSite: "none",
     maxAge: 1 * 24 * 60 * 60 * 1000,
   });
 };
