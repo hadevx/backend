@@ -39,6 +39,13 @@ const getCategories = async (req, res) => {
   });
 };
 
+const getAllCategories = async (req, res) => {
+  const categories = await Category.find({});
+  res.json(categories);
+};
+
+router.get("/all", getAllCategories);
+
 // Get all categories (flat list)
 router.get("/", getCategories);
 
