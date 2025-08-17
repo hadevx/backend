@@ -67,6 +67,7 @@ const loginAdmin = asyncHandler(async (req, res) => {
     throw new Error("Unauthorized");
   }
   generateToken(res, user._id, user);
+
   res.status(200).json({
     _id: user._id,
     name: user.name,

@@ -4,6 +4,7 @@ const express = require("express");
 const cors = require("cors");
 const dbConnect = require("./config/db.js");
 const dotenv = require("dotenv");
+const helmet = require("helmet");
 
 const {
   productRoutes,
@@ -25,7 +26,7 @@ dbConnect();
 
 // Intialize express app
 const app = express();
-
+app.use(helmet());
 // CORS
 app.use(
   cors({

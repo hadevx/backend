@@ -7,9 +7,9 @@ const router = express.Router();
 
 // Configure Cloudinary
 cloudinary.config({
-  cloud_name: "dbltp1pxl",
-  api_key: "877575371979227",
-  api_secret: "40l19WfxYNktJp0uhUvk3sGN7BY",
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 // Multer memory storage
