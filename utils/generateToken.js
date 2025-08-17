@@ -6,7 +6,7 @@ const generateToken = (res, userId, user) => {
   const cookieName = user.isAdmin ? "admin_jwt" : "user_jwt";
   //set JWT as HTTP-Only cookie
   res.cookie(cookieName, token, {
-    httpOnly: true,
+    httpOnly: true, //The cookie cannot be accessed by JavaScript running in the browser
     // secure: process.env.NODE_ENV !== "development",
     secure: false,
     // sameSite: "strict",

@@ -38,7 +38,7 @@ router.get("/delivery", getDeliveryStatus);
 router.post("/update-stock", updateStock);
 router.get("/category/:category", getProductsByCategory);
 router.get("/", getProducts);
-router.post("/", protectAdmin, createProduct);
+router.post("/", /* protectAdmin, */ createProduct);
 router
   .route("/:id")
   .get(getProductById)
