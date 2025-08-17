@@ -14,11 +14,33 @@ router.post("/", async (req, res) => {
   }
 });
 
-// Get all categories (flat list)
-router.get("/", async (req, res) => {
-  const categories = await Category.find().populate("parent", "name");
-  res.json(categories);
+const getCategories = asyncHandler(async (req, res) => {
+  const pageSize = 5; // categories per page
+  const page = Number(req.query.pageNumber) || 1;
+
+  // Optional search
+  const keyword = req.query.keyword ? { name: { $regex: req.query.keyword, $options: "i" } } : {};
+
+  // Count total matching categories
+  const count = await Category.countDocuments({ ...keyword });
+
+  // Fetch paginated categories
+  const categories = await Category.find({ ...keyword })
+    .populate("parent", "name")
+    .sort({ name: 1 })
+    .limit(pageSize)
+    .skip(pageSize * (page - 1));
+
+  res.json({
+    categories,
+    page,
+    pages: Math.ceil(count / pageSize),
+    total: count,
+  });
 });
+
+// Get all categories (flat list)
+router.get("/", getCategories);
 
 // Get categories as a tree
 const getCategoryTree = async (parentId = null) => {
