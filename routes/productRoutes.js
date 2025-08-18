@@ -24,14 +24,11 @@ const { protectUser, protectAdmin } = require("../middleware/authMiddleware");
 // /api/products
 
 /* PRODUCTS */
-router.get("/product/:id", getProductById);
+
 router.get("/latest", getLatestProducts);
 router.put("/delivery", protectAdmin, createShippingPrice);
 router.get("/", getProducts);
 router.post("/", protectAdmin, createProduct);
-router.get("/:id", getProductById);
-router.put("/:id", protectAdmin, updateProduct);
-router.delete("/:id", protectAdmin, deleteProduct);
 
 /* CATEGORY */
 router.post("/create-category", protectAdmin, createCategory);
@@ -59,5 +56,9 @@ router.post("/delete-image", async (req, res) => {
     res.status(500).json({ message: "Failed to delete image", error: err.message });
   }
 });
+router.get("/:id", getProductById);
+router.put("/:id", protectAdmin, updateProduct);
+router.delete("/:id", protectAdmin, deleteProduct);
+router.get("/product/:id", getProductById);
 
 module.exports = router;

@@ -4,7 +4,7 @@ const Category = require("../models/categoryModel");
 const { protectAdmin } = require("../middleware/authMiddleware");
 
 // Create a category or subcategory
-router.post("/", async (req, res) => {
+router.post("/", protectAdmin, async (req, res) => {
   try {
     const { name, parent } = req.body;
     const category = new Category({ name, parent: parent || null });
