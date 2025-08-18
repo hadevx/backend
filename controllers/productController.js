@@ -370,7 +370,7 @@ const getCategories = asyncHandler(async (req, res) => {
   });
 });
 
-const deleteCategory = asyncHandler(async (req, res) => {
+/* const deleteCategory = asyncHandler(async (req, res) => {
   const { name } = req.body;
 
   const deleteCategory = await Category.findOneAndDelete({ name: name });
@@ -379,6 +379,15 @@ const deleteCategory = asyncHandler(async (req, res) => {
     throw new Error("Category not found");
   }
   res.json(deleteCategory);
+}); */
+const deleteCategory = asyncHandler(async (req, res) => {
+  const name = req.query.name; // get name from query
+  const deletedCategory = await Category.findOneAndDelete({ name });
+  if (!deletedCategory) {
+    res.status(404);
+    throw new Error("Category not found");
+  }
+  res.json(deletedCategory);
 });
 module.exports = {
   getProducts,
