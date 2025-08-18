@@ -16,7 +16,7 @@ const sendOrderEmail = async (orderDetails) => {
 
   const mailOptions = {
     from: process.env.CUSTOMER_SERVICE_EMAIL,
-    to: "hn98q8@gmail.com", // Send the email to the admin
+    to: process.env.ADMIN_EMAIL, // Send the email to the admin
     subject: "You've got a new order",
     html: `<h1>You Have New Order</h1>
            <p>Order ID: <strong>${orderDetails?._id}</strong></p>

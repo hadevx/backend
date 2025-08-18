@@ -22,13 +22,23 @@ const {
 const { protectUser, protectAdmin } = require("../middleware/authMiddleware");
 
 // /api/products
+
+/* PRODUCTS */
 router.get("/product/:id", getProductById);
+router.get("/latest", getLatestProducts);
+router.put("/delivery", protectAdmin, createShippingPrice);
+router.get("/", getProducts);
+router.post("/", protectAdmin, createProduct);
+router.get("/:id", getProductById);
+router.put("/:id", protectAdmin, updateProduct);
+router.delete("/:id", protectAdmin, deleteProduct);
+
+/* CATEGORY */
 router.post("/create-category", protectAdmin, createCategory);
 router.delete("/category", protectAdmin, deleteCategory);
 router.get("/category", getCategories);
-router.get("/latest", getLatestProducts);
-router.put("/delivery", protectAdmin, createShippingPrice);
 
+/* DISCOUNTS */
 router.post("/discount", protectAdmin, createDiscount);
 router.put("/discount", protectAdmin, updateDiscounts);
 router.get("/discount", getDiscountStatus);
@@ -37,13 +47,6 @@ router.delete("/discount", protectAdmin, deleteDiscount);
 router.get("/delivery", getDeliveryStatus);
 router.post("/update-stock", updateStock);
 router.get("/category/:category", getProductsByCategory);
-router.get("/", getProducts);
-router.post("/", /* protectAdmin, */ createProduct);
-router
-  .route("/:id")
-  .get(getProductById)
-  .put(protectAdmin, updateProduct)
-  .delete(protectAdmin, deleteProduct);
 
 router.post("/delete-image", async (req, res) => {
   try {

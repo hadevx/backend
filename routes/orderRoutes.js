@@ -12,11 +12,9 @@ const {
   updateOrderToCanceled,
 } = require("../controllers/orderControllers");
 
-// /api/orders
+// http:localhost:4001/api/orders
 router.get("/user-orders/:id", getUserOrders);
-
 router.route("/").post(protectUser, addOrderItems).get(protectAdmin, getOrders);
-
 router.route("/mine").get(protectUser, getMyOrders);
 router.get("/:id", protectUser, getOrderById);
 router.get("/admin/:id", protectAdmin, getOrderById);

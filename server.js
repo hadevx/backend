@@ -26,13 +26,15 @@ dbConnect();
 
 // Intialize express app
 const app = express();
+
 // app.use(helmet());
+
 // CORS
 app.use(
   cors({
     origin: [
-      "http://localhost:3000",
-      "http://localhost:5173",
+      "http://localhost:3000", //admin
+      "http://localhost:5173", //storefront
       "https://storefront-beta.up.railway.app",
       "https://admin-beta.up.railway.app",
     ],
