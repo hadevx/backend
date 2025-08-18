@@ -14,6 +14,27 @@ router.post("/", async (req, res) => {
   }
 });
 
+// Delete a category by name
+router.delete("/", async (req, res) => {
+  try {
+    const { name } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: "Category name is required" });
+    }
+
+    const deletedCategory = await Category.findOneAndDelete({ name });
+
+    if (!deletedCategory) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+
+    res.json({ message: "Category deleted successfully", category: deletedCategory });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 const getCategories = async (req, res) => {
   const pageSize = 5; // categories per page
   const page = Number(req.query.pageNumber) || 1;

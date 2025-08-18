@@ -370,7 +370,7 @@ const getCategories = asyncHandler(async (req, res) => {
   });
 });
 
-/* const deleteCategory = asyncHandler(async (req, res) => {
+const deleteCategory = asyncHandler(async (req, res) => {
   const { name } = req.body;
 
   const deleteCategory = await Category.findOneAndDelete({ name: name });
@@ -379,26 +379,6 @@ const getCategories = asyncHandler(async (req, res) => {
     throw new Error("Category not found");
   }
   res.json(deleteCategory);
-}); */
-/* const deleteCategory = asyncHandler(async (req, res) => {
-  const name = req.query.name; // get name from query
-  const deletedCategory = await Category.findOneAndDelete({ name });
-  if (!deletedCategory) {
-    res.status(404);
-    throw new Error("Category not found");
-  }
-  res.json(deletedCategory);
-}); */
-const deleteCategory = asyncHandler(async (req, res) => {
-  const { id } = req.body; // now expecting { id: "categoryId" }
-
-  const deletedCategory = await Category.findByIdAndDelete(id);
-  if (!deletedCategory) {
-    res.status(404);
-    throw new Error("Category not found");
-  }
-
-  res.json(deletedCategory);
 });
 
 module.exports = {
