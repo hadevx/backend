@@ -10,10 +10,12 @@ const {
   getOrders,
   getUserOrders,
   updateOrderToCanceled,
+  checkStock,
 } = require("../controllers/orderControllers");
 
 // http:localhost:4001/api/orders
 router.get("/user-orders/:id", getUserOrders);
+router.get("/check-stock", checkStock);
 router.route("/").post(protectUser, addOrderItems).get(protectAdmin, getOrders);
 router.route("/mine").get(protectUser, getMyOrders);
 router.get("/:id", protectUser, getOrderById);

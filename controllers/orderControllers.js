@@ -1,5 +1,6 @@
 const asyncHandler = require("../middleware/asyncHandler");
 const Order = require("../models/orderModel");
+const Product = require("../models/productModel");
 const { sendOrderEmail } = require("../utils/emailService");
 
 // @desc    Create new order
@@ -128,6 +129,47 @@ const updateOrderToCanceled = asyncHandler(async (req, res) => {
   }
 });
 
+const checkStock = asyncHandler(async (req, res) => {
+  const { orderItems } = req.body; // [{ product, qty, name, ... }]
+
+  if (!orderItems || !Array.isArray(orderItems)) {
+    res.status(400);
+    throw new Error("Invalid order items");
+  }
+
+  const outOfStockItems = [];
+
+  for (const item of orderItems) {
+    const product = await Product.findById(item.product); // use item.product (ObjectId)
+
+    if (!product) {
+      outOfStockItems.push({
+        productId: item.product,
+        name: item.name || "Unknown",
+        reason: "Product not found",
+      });
+    } else if (product.countInStock <= 0) {
+      outOfStockItems.push({
+        productId: item.product,
+        name: product.name,
+        reason: "Out of stock",
+      });
+    } else if (item.qty > product.countInStock) {
+      outOfStockItems.push({
+        productId: item.product,
+        name: product.name,
+        reason: `Only ${product.countInStock} left in stock`,
+      });
+    }
+  }
+
+  if (outOfStockItems.length > 0) {
+    return res.status(200).json({ success: false, outOfStockItems });
+  }
+
+  return res.status(200).json({ success: true });
+});
+
 // @desc    Get all orders
 // @route   GET /api/orders
 // @access  Private/admin
@@ -194,4 +236,5 @@ module.exports = {
   getOrders,
   getUserOrders,
   updateOrderToCanceled,
+  checkStock,
 };
