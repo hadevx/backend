@@ -130,7 +130,7 @@ const updateOrderToCanceled = asyncHandler(async (req, res) => {
 });
 
 const checkStock = asyncHandler(async (req, res) => {
-  const { orderItems } = req.body; // [{ product, qty, name, ... }]
+  const { orderItems } = req.body; // [{ _id, qty, name, ... }]
 
   if (!orderItems || !Array.isArray(orderItems)) {
     res.status(400);
@@ -141,29 +141,22 @@ const checkStock = asyncHandler(async (req, res) => {
 
   for (const item of orderItems) {
     const product = await Product.findById(item._id);
-
     if (!product) {
       outOfStockItems.push({
-        productId: item.product,
+        productId: item._id,
         name: item.name || "Unknown",
         reason: "Product not found",
       });
-    } else if (product.countInStock <= 0) {
-      outOfStockItems.push({
-        productId: item.product,
-        name: product.name,
-        reason: "Out of stock",
-      });
     } else if (item.qty > product.countInStock) {
       outOfStockItems.push({
-        productId: item.product,
+        productId: item._id,
         name: product.name,
         reason: `Only ${product.countInStock} left in stock`,
       });
     }
   }
 
-  if (outOfStockItems.length > 0) {
+  if (outOfStockItems.length) {
     return res.status(200).json({ success: false, outOfStockItems });
   }
 
