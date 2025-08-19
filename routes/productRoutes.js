@@ -18,16 +18,17 @@ const {
   deleteCategory,
   createDiscount,
   deleteDiscount,
+  getAllProducts,
 } = require("../controllers/productController");
 const { protectUser, protectAdmin } = require("../middleware/authMiddleware");
 
 // /api/products
 
 /* PRODUCTS */
-
 router.get("/latest", getLatestProducts);
 router.put("/delivery", protectAdmin, createShippingPrice);
 router.get("/", getProducts);
+router.get("/all", getAllProducts);
 router.post("/", protectAdmin, createProduct);
 
 /* CATEGORY */

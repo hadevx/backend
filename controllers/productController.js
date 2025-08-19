@@ -6,19 +6,15 @@ const Category = require("../models/categoryModel");
 const fs = require("fs");
 const path = require("path");
 const cloudinary = require("cloudinary").v2;
+
 // @desc    Fetch all products
 // @route   GET /api/products
 // @access  Public
-/* const getProducts = asyncHandler(async (req, res) => {
-  const pageSize = 8;
-  const page = Number(req.query.pageNumber) || 1;
-  const keyword = req.query.keyword ? { name: { $regex: req.query.keyword, $options: "i" } } : {};
-  const count = await Product.countDocuments({ ...keyword });
-
-  const products = await Product.find({}).sort({ createdAt: -1 });
+const getAllProducts = asyncHandler(async (req, res) => {
+  const products = await Product.find({});
 
   res.json(products);
-}); */
+});
 
 const getProducts = asyncHandler(async (req, res) => {
   const pageSize = 5; // how many per page
@@ -401,4 +397,5 @@ module.exports = {
   getCategories,
   deleteCategory,
   deleteDiscount,
+  getAllProducts,
 };
