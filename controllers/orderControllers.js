@@ -140,7 +140,7 @@ const checkStock = asyncHandler(async (req, res) => {
   const outOfStockItems = [];
 
   for (const item of orderItems) {
-    const product = await Product.findById(item.product); // use item.product (ObjectId)
+    const product = await Product.findById(item._id);
 
     if (!product) {
       outOfStockItems.push({
