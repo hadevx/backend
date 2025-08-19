@@ -19,6 +19,7 @@ const {
   createDiscount,
   deleteDiscount,
   getAllProducts,
+  fetchProductsByIds,
 } = require("../controllers/productController");
 const { protectUser, protectAdmin } = require("../middleware/authMiddleware");
 
@@ -30,7 +31,7 @@ router.put("/delivery", protectAdmin, createShippingPrice);
 router.get("/", getProducts);
 router.get("/all", getAllProducts);
 router.post("/", protectAdmin, createProduct);
-
+router.post("/fetch-by-ids", fetchProductsByIds);
 /* CATEGORY */
 router.post("/create-category", protectAdmin, createCategory);
 router.delete("/category", protectAdmin, deleteCategory);

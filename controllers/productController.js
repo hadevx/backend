@@ -40,6 +40,18 @@ const getProducts = asyncHandler(async (req, res) => {
   });
 });
 
+// POST /api/products/fetch-by-ids
+export const fetchProductsByIds = asyncHandler(async (req, res) => {
+  const { productIds } = req.body; // array of product _id
+  if (!productIds || !Array.isArray(productIds)) {
+    res.status(400);
+    throw new Error("Invalid product IDs");
+  }
+
+  const products = await Product.find({ _id: { $in: productIds } });
+  res.json(products);
+});
+
 const getLatestProducts = asyncHandler(async (req, res) => {
   const products = await Product.find({}).sort({ createdAt: -1 }).limit(5);
 
@@ -398,4 +410,5 @@ module.exports = {
   deleteCategory,
   deleteDiscount,
   getAllProducts,
+  fetchProductsByIds,
 };
