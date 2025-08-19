@@ -41,7 +41,7 @@ const getProducts = asyncHandler(async (req, res) => {
 });
 
 // POST /api/products/fetch-by-ids
-export const fetchProductsByIds = asyncHandler(async (req, res) => {
+const fetchProductsByIds = asyncHandler(async (req, res) => {
   const { productIds } = req.body; // array of product _id
   if (!productIds || !Array.isArray(productIds)) {
     res.status(400);
