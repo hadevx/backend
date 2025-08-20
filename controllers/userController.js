@@ -29,7 +29,7 @@ const loginUser = asyncHandler(async (req, res) => {
     res.status(401);
     throw new Error("Invalid email or password");
   }
-  generateToken(res, user._id, user);
+  generateToken(res, user);
   res.status(200).json({
     _id: user._id,
     name: user.name,
@@ -66,7 +66,7 @@ const loginAdmin = asyncHandler(async (req, res) => {
     res.status(401);
     throw new Error("Unauthorized");
   }
-  generateToken(res, user._id, user);
+  generateToken(res, user);
 
   res.status(200).json({
     _id: user._id,

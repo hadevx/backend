@@ -19,12 +19,8 @@ module.exports = generateToken;
 const jwt = require("jsonwebtoken");
 
 const generateToken = (res, user) => {
-  // Add role info into payload
-  const token = jwt.sign(
-    { userId: user._id, role: user.isAdmin ? "admin" : "user" },
-    process.env.JWT_SECRET,
-    { expiresIn: "1d" }
-  );
+  const role = user.isAdmin ? "admin" : "user";
+  const token = jwt.sign({ userId: user._id, role }, process.env.JWT_SECRET, { expiresIn: "1d" });
 
   // Always one cookie name
   res.cookie("jwt", token, {
