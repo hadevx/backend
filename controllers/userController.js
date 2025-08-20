@@ -118,7 +118,7 @@ const registerUser = asyncHandler(async (req, res) => {
 // @route   POST /api/users/logout
 // @access  Private
 const logoutUser = asyncHandler(async (req, res) => {
-  res.cookie("user_jwt", "", {
+  res.cookie("jwt", "", {
     httpOnly: true,
     secure: process.env.NODE_ENV !== "development",
     sameSite: "strict",
@@ -128,7 +128,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 });
 
 const logoutAdmin = asyncHandler(async (req, res) => {
-  res.cookie("admin_jwt", "", {
+  res.cookie("jwt", "", {
     httpOnly: true,
     secure: process.env.NODE_ENV !== "development",
     sameSite: "strict",
