@@ -30,18 +30,18 @@ router.get("/latest", getLatestProducts);
 router.put("/delivery", protectAdmin, createShippingPrice);
 router.get("/", getProducts);
 router.get("/all", getAllProducts);
-router.post("/", protectAdmin, createProduct);
+router.post("/", protectUser, protectAdmin, createProduct);
 router.post("/fetch-by-ids", fetchProductsByIds);
 /* CATEGORY */
-router.post("/create-category", protectAdmin, createCategory);
-router.delete("/category", protectAdmin, deleteCategory);
+router.post("/create-category", protectUser, protectAdmin, createCategory);
+router.delete("/category", protectUser, protectAdmin, deleteCategory);
 router.get("/category", getCategories);
 
 /* DISCOUNTS */
-router.post("/discount", protectAdmin, createDiscount);
-router.put("/discount", protectAdmin, updateDiscounts);
+router.post("/discount", protectUser, protectAdmin, createDiscount);
+router.put("/discount", protectUser, protectAdmin, updateDiscounts);
 router.get("/discount", getDiscountStatus);
-router.delete("/discount", protectAdmin, deleteDiscount);
+router.delete("/discount", protectUser, protectAdmin, deleteDiscount);
 
 router.get("/delivery", getDeliveryStatus);
 router.post("/update-stock", updateStock);
@@ -59,8 +59,8 @@ router.post("/delete-image", async (req, res) => {
   }
 });
 router.get("/:id", getProductById);
-router.put("/:id", protectAdmin, updateProduct);
-router.delete("/:id", protectAdmin, deleteProduct);
+router.put("/:id", protectUser, protectAdmin, updateProduct);
+router.delete("/:id", protectUser, protectAdmin, deleteProduct);
 router.get("/product/:id", getProductById);
 
 module.exports = router;

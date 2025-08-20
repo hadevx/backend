@@ -1,10 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const Category = require("../models/categoryModel");
-const { protectAdmin } = require("../middleware/authMiddleware");
+const { protectUser, protectAdmin } = require("../middleware/authMiddleware");
 
 // Create a category or subcategory
-router.post("/", protectAdmin, async (req, res) => {
+router.post("/", protectUser, protectAdmin, async (req, res) => {
   try {
     const { name, parent } = req.body;
     const category = new Category({ name, parent: parent || null });
@@ -16,7 +16,7 @@ router.post("/", protectAdmin, async (req, res) => {
 });
 
 // Delete a category by name
-router.delete("/", protectAdmin, async (req, res) => {
+router.delete("/", protectUser, protectAdmin, async (req, res) => {
   try {
     const { name } = req.body;
 

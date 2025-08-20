@@ -33,11 +33,11 @@ router.put("/profile", protectUser, updateUserProfile);
 router.post("/logout", logoutUser);
 
 // Admin routes
-router.get("/", protectAdmin, getUsers);
-router.put("/:id", protectAdmin, updateUser);
-router.delete("/:id", protectAdmin, deleteUser);
-router.get("/:id", protectAdmin, getUserById);
 router.post("/admin", loginLimiter, loginAdmin);
+router.get("/", protectUser, protectAdmin, getUsers);
+router.put("/:id", protectUser, updateUser);
+router.delete("/:id", protectUser, protectAdmin, deleteUser);
+router.get("/:id", protectUser, protectAdmin, getUserById);
 
 router.post("/admin/logout", logoutUser);
 
