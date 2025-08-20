@@ -30,7 +30,8 @@ const generateToken = (res, user) => {
   res.cookie("jwt", token, {
     httpOnly: true, // The cookie cannot be accessed by JavaScript running in the browser
     secure: process.env.NODE_ENV !== "development", // secure in production
-    sameSite: "strict",
+    // sameSite: "strict",
+    sameSite: "lax", //on localhost
     maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
   });
 };
