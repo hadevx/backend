@@ -27,7 +27,7 @@ const { protectUser, protectAdmin } = require("../middleware/authMiddleware");
 
 /* PRODUCTS */
 router.get("/latest", getLatestProducts);
-router.put("/delivery", protectAdmin, createShippingPrice);
+router.put("/delivery", protectUser, protectAdmin, createShippingPrice);
 router.get("/", getProducts);
 router.get("/all", getAllProducts);
 router.post("/", protectUser, protectAdmin, createProduct);
