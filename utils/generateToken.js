@@ -26,9 +26,8 @@ const generateToken = (res, user) => {
   res.cookie("jwt", token, {
     httpOnly: true, // The cookie cannot be accessed by JavaScript running in the browser
     secure: process.env.NODE_ENV !== "development", // secure in production
-    domain: ".up.railway.app", // note the leading dot
-    sameSite: "strict",
-    // sameSite: "lax", //on localhost
+    // sameSite: "strict",
+    sameSite: "lax",
     maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
   });
 };
