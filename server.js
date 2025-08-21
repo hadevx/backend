@@ -37,6 +37,7 @@ app.use(
       "http://localhost:5173", //storefront
       "https://storefront-beta.up.railway.app",
       "https://admin-beta.up.railway.app",
+      "https://storefront2-production.up.railway.app",
     ],
     credentials: true,
   })
