@@ -24,7 +24,8 @@
     "dev": "nodemon server.js",
     "seed": "node seed.js",
     "destroy": "node seed.js -d",
-    "custom": "node seed.js -c"
+    "custom": "node seed.js -c",
+    "production": "node seed.js -p"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
