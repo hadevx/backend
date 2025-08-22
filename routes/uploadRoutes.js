@@ -31,7 +31,7 @@ router.post("/", upload.single("image"), (req, res) => {
   res.json({
     message: "Image uploaded",
     imageUrl: `/uploads/${req.file.filename}`, // frontend can use this URL
-    filename: req.file.filename, // save this in DB if needed
+    publicId: req.file.filename,
   });
 });
 
