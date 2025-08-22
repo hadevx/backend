@@ -27,10 +27,13 @@ const upload = multer({ storage });
 router.post("/", upload.single("image"), (req, res) => {
   if (!req.file) return res.status(400).json({ message: "No file uploaded" });
 
+  // Construct full URL
+  const fullUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+
   // Return the path to access the file
   res.json({
     message: "Image uploaded",
-    imageUrl: `/uploads/${req.file.filename}`, // frontend can use this URL
+    imageUrl: fullUrl, // <-- full URL now
     publicId: req.file.filename,
   });
 });
