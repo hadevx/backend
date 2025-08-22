@@ -38,6 +38,7 @@ app.use(
       "https://storefront-beta.up.railway.app",
       "https://admin-beta.up.railway.app",
       "https://storefront2-production.up.railway.app",
+      "https://webschema.online",
     ],
     credentials: true,
   })
