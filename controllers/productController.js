@@ -116,15 +116,17 @@ const updateProduct = asyncHandler(async (req, res) => {
     throw new Error("Product not found");
   }
 
-  // Delete old image if a new one is uploaded
-  if (image && product.imagePublicId && product.imagePublicId !== imagePublicId) {
+  // Delete old local image if a new one is uploaded
+  if (image && product.image && product.image !== image) {
     try {
-      const result = await cloudinary.uploader.destroy(product.imagePublicId);
-      if (result.result !== "ok" && result.result !== "not found") {
-        console.warn("Failed to delete old image:", result);
+      // Extract filename from URL
+      const filename = product.image.split("/").pop();
+      const filePath = path.join(__dirname, "..", "uploads", filename);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
       }
     } catch (err) {
-      console.error("Cloudinary deletion error:", err.message);
+      console.error("Failed to delete old image:", err.message);
     }
   }
 
