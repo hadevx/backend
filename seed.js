@@ -82,9 +82,9 @@ const destroyData = async () => {
     await Product.deleteMany();
     await User.deleteMany();
     await Address.deleteMany();
-    // await Delivery.deleteMany();
-    // await Discount.deleteMany();
-    // await Store.deleteMany();
+    await Delivery.deleteMany();
+    await Discount.deleteMany();
+    await Store.deleteMany();
     await Category.deleteMany();
 
     console.log("Data destroyed");
@@ -95,10 +95,17 @@ const destroyData = async () => {
   }
 };
 
+const seedProduction = async () => {
+  await User.create(users[0]);
+  console.log("Data seeded");
+};
+
 if (process.argv[2] === "-d") {
   destroyData();
 } else if (process.argv[2] === "-c") {
   seedCustom();
+} else if (process.argv[2] === "-p") {
+  seedProduction();
 } else {
   seedData();
 }
