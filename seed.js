@@ -82,9 +82,9 @@ const destroyData = async () => {
     await Product.deleteMany();
     await User.deleteMany();
     await Address.deleteMany();
-    await Delivery.deleteMany();
-    await Discount.deleteMany();
-    await Store.deleteMany();
+    // await Delivery.deleteMany();
+    // await Discount.deleteMany();
+    // await Store.deleteMany();
     await Category.deleteMany();
 
     console.log("Data destroyed");
@@ -97,6 +97,9 @@ const destroyData = async () => {
 
 const seedProduction = async () => {
   await User.create(users[0]);
+  await Delivery.create({ timeToDeliver: "today", shippingFee: 0, minDeliveryCost: 0 });
+  await Store.create({ status: "active" });
+
   console.log("Data seeded");
 };
 
