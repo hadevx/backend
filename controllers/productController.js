@@ -179,13 +179,14 @@ const deleteProduct = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
 
   if (product) {
-    // Remove image from Cloudinary if it exists
-    if (product.imagePublicId) {
-      try {
-        await cloudinary.uploader.destroy(product.imagePublicId);
-      } catch (err) {
-        console.error("Failed to delete image from Cloudinary:", err);
-      }
+    if (product.image && product.image.includes("/uploads/")) {
+      // Extract filename from URL
+      const filename = product.image.split("/uploads/").pop();
+      const filePath = path.join(__dirname, "..", "uploads", filename);
+
+      fs.unlink(filePath, (err) => {
+        if (err) console.error("Failed to delete local image:", err);
+      });
     }
 
     await product.deleteOne();

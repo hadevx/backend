@@ -12,12 +12,16 @@ if (!fs.existsSync(uploadPath)) {
   fs.mkdirSync(uploadPath, { recursive: true });
 }
 
-// Multer disk storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadPath),
   filename: (req, file, cb) => {
-    // Save file with timestamp + original extension
-    cb(null, Date.now() + path.extname(file.originalname));
+    // Get original name without extension
+    const name = path.parse(file.originalname).name.replace(/\s+/g, "-").toLowerCase();
+    // Get file extension
+    const ext = path.extname(file.originalname);
+    // Combine name + timestamp + extension
+    const filename = `${name}-${Date.now()}${ext}`;
+    cb(null, filename);
   },
 });
 
