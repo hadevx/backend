@@ -25,13 +25,10 @@ const generateToken = (res, user, subdomain) => {
   // Set cookie domain based on subdomain
   let domain = undefined; // default is current domain
   if (process.env.NODE_ENV === "production") {
-    // adjust according to your domain
-    // example: store.example.com / admin.example.com
-    if (subdomain === "store") domain = "store.webschmea.online";
+    if (subdomain === "storefront") domain = "storefront.webschema.online";
     if (subdomain === "admin") domain = "admin.webschema.online";
   }
 
-  // Always one cookie name
   res.cookie("jwt", token, {
     httpOnly: true, // The cookie cannot be accessed by JavaScript running in the browser
     secure: process.env.NODE_ENV === "production", // secure in production
