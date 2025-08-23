@@ -35,7 +35,7 @@ const generateToken = (res, user, subdomain) => {
   res.cookie("jwt", token, {
     httpOnly: true, // The cookie cannot be accessed by JavaScript running in the browser
     secure: process.env.NODE_ENV === "production", // secure in production
-    sameSite: "strict",
+    sameSite: "lax",
     domain,
     maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
   });
