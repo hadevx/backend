@@ -34,7 +34,7 @@ const generateToken = (res, user, subdomain) => {
     secure: process.env.NODE_ENV === "production", // secure in production
     sameSite: "none",
     // sameSite: "lax",
-    domain, // scoped to subdomain
+    // domain, // scoped to subdomain
     maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
   });
 };
