@@ -24,17 +24,19 @@ const generateToken = (res, user, subdomain) => {
 
   // Set cookie domain based on subdomain
   let domain = undefined; // default is current domain
-  if (process.env.NODE_ENV === "production") {
-    if (subdomain === "storefront") domain = "storefront.webschema.online";
-    if (subdomain === "admin") domain = "admin.webschema.online";
+
+  if (subdomain === "storefront") {
+    domain = "storefront.webschema.online";
+  }
+  if (subdomain === "admin") {
+    domain = "admin.webschema.online";
   }
 
   res.cookie("jwt", token, {
     httpOnly: true, // The cookie cannot be accessed by JavaScript running in the browser
     secure: process.env.NODE_ENV === "production", // secure in production
-    sameSite: "none",
-    // sameSite: "lax",
-    // domain, // scoped to subdomain
+    sameSite: "strict",
+    domain,
     maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
   });
 };
