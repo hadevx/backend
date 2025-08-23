@@ -2,39 +2,13 @@ const express = require("express");
 const router = express.Router();
 const Category = require("../models/categoryModel");
 const { protectUser, protectAdmin } = require("../middleware/authMiddleware");
+const { createCategory, deleteCategory } = require("../controllers/categoryControllers");
 
 // Create a category or subcategory
-router.post("/", protectUser, protectAdmin, async (req, res) => {
-  try {
-    const { name, parent } = req.body;
-    const category = new Category({ name, parent: parent || null });
-    const saved = await category.save();
-    res.status(201).json(saved);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+router.post("/", protectUser, protectAdmin, createCategory);
 
 // Delete a category by name
-router.delete("/", protectUser, protectAdmin, async (req, res) => {
-  try {
-    const { name } = req.body;
-
-    if (!name) {
-      return res.status(400).json({ message: "Category name is required" });
-    }
-
-    const deletedCategory = await Category.findOneAndDelete({ name });
-
-    if (!deletedCategory) {
-      return res.status(404).json({ message: "Category not found" });
-    }
-
-    res.json({ message: "Category deleted successfully", category: deletedCategory });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+router.delete("/", protectUser, protectAdmin, deleteCategory);
 
 const getCategories = async (req, res) => {
   const pageSize = 5; // categories per page

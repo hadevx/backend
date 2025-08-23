@@ -29,7 +29,8 @@ const loginUser = asyncHandler(async (req, res) => {
     res.status(401);
     throw new Error("Invalid email or password");
   }
-  generateToken(res, user);
+  let subdomain = "storefront";
+  generateToken(res, user, subdomain);
   res.status(200).json({
     _id: user._id,
     name: user.name,
@@ -66,7 +67,8 @@ const loginAdmin = asyncHandler(async (req, res) => {
     res.status(401);
     throw new Error("Unauthorized");
   }
-  generateToken(res, user);
+  let subdomain = "admin";
+  generateToken(res, user, subdomain);
 
   res.status(200).json({
     _id: user._id,
@@ -104,7 +106,7 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error("User creation failed");
   }
 
-  generateToken(res, user._id, user);
+  generateToken(res, user);
   res.status(201).json({
     _id: user._id,
     name: user.name,

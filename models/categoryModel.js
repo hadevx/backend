@@ -14,6 +14,10 @@ const categorySchema = new Schema(
       ref: "Category",
       default: null,
     },
+    image: {
+      type: String,
+      default: null,
+    },
   },
   { timestamps: true }
 );

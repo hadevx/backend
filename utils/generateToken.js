@@ -18,9 +18,18 @@ module.exports = generateToken;
  */
 const jwt = require("jsonwebtoken");
 
-const generateToken = (res, user) => {
+const generateToken = (res, user, subdomain) => {
   const role = user.isAdmin ? "admin" : "user";
   const token = jwt.sign({ userId: user._id, role }, process.env.JWT_SECRET, { expiresIn: "1d" });
+
+  // Set cookie domain based on subdomain
+  let domain = undefined; // default is current domain
+  if (process.env.NODE_ENV === "production") {
+    // adjust according to your domain
+    // example: store.example.com / admin.example.com
+    if (subdomain === "store") domain = "store.webschmea.online";
+    if (subdomain === "admin") domain = "admin.webschema.online";
+  }
 
   // Always one cookie name
   res.cookie("jwt", token, {
@@ -28,6 +37,7 @@ const generateToken = (res, user) => {
     secure: process.env.NODE_ENV === "production", // secure in production
     sameSite: "strict",
     // sameSite: "lax",
+    domain, // scoped to subdomain
     maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
   });
 };
