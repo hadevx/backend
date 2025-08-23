@@ -34,8 +34,8 @@ const generateToken = (res, user, subdomain) => {
   const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    domain: "admin.webschema.online",
+    sameSite: "none",
+    // domain: "admin.webschema.online",
     maxAge: 1 * 24 * 60 * 60 * 1000,
   };
 
