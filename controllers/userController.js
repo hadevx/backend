@@ -29,8 +29,8 @@ const loginUser = asyncHandler(async (req, res) => {
     res.status(401);
     throw new Error("Invalid email or password");
   }
-  let subdomain = "storefront";
-  generateToken(res, user, subdomain);
+
+  generateToken(res, user);
   res.status(200).json({
     _id: user._id,
     name: user.name,
@@ -67,8 +67,8 @@ const loginAdmin = asyncHandler(async (req, res) => {
     res.status(401);
     throw new Error("Unauthorized");
   }
-  let subdomain = "admin";
-  generateToken(res, user, subdomain);
+
+  generateToken(res, user);
 
   res.status(200).json({
     _id: user._id,
