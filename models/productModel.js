@@ -38,6 +38,10 @@ const productSchema = new Schema(
       required: true, // fixed typo
       default: 0,
     },
+    featured: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

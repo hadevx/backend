@@ -20,7 +20,7 @@ const {
   resetPassword,
 } = require("../controllers/userController");
 
-/* http://localhost:4001/api/users */
+/* /api/users */
 
 // Client routes
 router.post("/login", loginUser);

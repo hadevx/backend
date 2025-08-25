@@ -20,6 +20,7 @@ const {
   deleteDiscount,
   getAllProducts,
   fetchProductsByIds,
+  featuredProducts,
 } = require("../controllers/productController");
 const { protectUser, protectAdmin } = require("../middleware/authMiddleware");
 
@@ -32,6 +33,7 @@ router.get("/", getProducts);
 router.get("/all", getAllProducts);
 router.post("/", protectUser, protectAdmin, createProduct);
 router.post("/fetch-by-ids", fetchProductsByIds);
+router.get("/featured", featuredProducts);
 /* CATEGORY */
 router.post("/create-category", protectUser, protectAdmin, createCategory);
 router.delete("/category", protectUser, protectAdmin, deleteCategory);
@@ -47,7 +49,7 @@ router.get("/delivery", getDeliveryStatus);
 router.post("/update-stock", updateStock);
 router.get("/category/:category", getProductsByCategory);
 
-router.post("/delete-image", async (req, res) => {
+/* router.post("/delete-image", async (req, res) => {
   try {
     const { publicId } = req.body;
     if (!publicId) return res.status(400).json({ message: "Public ID required" });
@@ -57,7 +59,7 @@ router.post("/delete-image", async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: "Failed to delete image", error: err.message });
   }
-});
+}); */
 router.get("/:id", getProductById);
 router.put("/:id", protectUser, protectAdmin, updateProduct);
 router.delete("/:id", protectUser, protectAdmin, deleteProduct);

@@ -106,8 +106,17 @@ const createProduct = asyncHandler(async (req, res) => {
 // @route   PUT /api/products/:id
 // @access  Private/admin
 const updateProduct = asyncHandler(async (req, res) => {
-  const { name, price, description, image, imagePublicId, brand, category, countInStock } =
-    req.body;
+  const {
+    name,
+    price,
+    description,
+    image,
+    imagePublicId,
+    brand,
+    category,
+    countInStock,
+    featured,
+  } = req.body;
 
   const product = await Product.findById(req.params.id);
 
@@ -139,10 +148,20 @@ const updateProduct = asyncHandler(async (req, res) => {
   product.brand = brand ?? product.brand;
   product.category = category ?? product.category;
   product.countInStock = countInStock ?? product.countInStock;
+  product.featured = featured ?? product.featured; //
 
   const updatedProduct = await product.save();
 
   res.status(200).json(updatedProduct);
+});
+
+const featuredProducts = asyncHandler(async (req, res) => {
+  try {
+    const products = await Product.find({ featured: true }).limit(3);
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ error: "Server error" });
+  }
 });
 
 const getProductsByCategory = asyncHandler(async (req, res) => {
@@ -414,4 +433,5 @@ module.exports = {
   deleteDiscount,
   getAllProducts,
   fetchProductsByIds,
+  featuredProducts,
 };
