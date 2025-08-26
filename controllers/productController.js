@@ -127,7 +127,7 @@ const createProduct = asyncHandler(async (req, res) => {
     throw new Error("Product not found");
   }
 
-  // Delete old local image if a new one is uploaded
+ // Delete old local image if a new one is uploaded
   if (image && product.image && product.image !== image) {
     try {
       // Extract filename from URL
@@ -139,7 +139,7 @@ const createProduct = asyncHandler(async (req, res) => {
     } catch (err) {
       console.error("Failed to delete old image:", err.message);
     }
-  }
+  } 
 
   // Update fields
   product.name = name ?? product.name;
@@ -155,13 +155,15 @@ const createProduct = asyncHandler(async (req, res) => {
   const updatedProduct = await product.save();
 
   res.status(200).json(updatedProduct);
-}); */
+});
+ */
+
 const updateProduct = asyncHandler(async (req, res) => {
   const {
     name,
     price,
     description,
-    images, // expect an array of { url, publicId } or just URLs
+    image, // expect an array of { url, publicId } or just URLs
     brand,
     category,
     countInStock,
@@ -175,25 +177,22 @@ const updateProduct = asyncHandler(async (req, res) => {
     throw new Error("Product not found");
   }
 
-  // Delete old images that are no longer in new images array
-  if (images && Array.isArray(images)) {
+  // Delete old images that are no longer in the new images array
+  if (image && Array.isArray(image)) {
     const oldImages = product.image || [];
 
     for (const oldImg of oldImages) {
-      // If old image is not in new images array, delete local file
-      if (!images.find((img) => (img.url ? img.url : img) === (oldImg.url ? oldImg.url : oldImg))) {
-        if (oldImg.url && oldImg.url.includes("/uploads/")) {
-          const filename = oldImg.url.split("/uploads/").pop();
-          const filePath = path.join(__dirname, "..", "uploads", filename);
-          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-        }
+      const oldUrl = oldImg.url ? oldImg.url : oldImg;
+      const existsInNew = image.some((img) => (img.url ? img.url : img) === oldUrl);
 
-        // If using Cloudinary, delete via publicId
-        // if (oldImg.publicId) await cloudinary.uploader.destroy(oldImg.publicId);
+      if (!existsInNew && oldUrl.includes("/uploads/")) {
+        const filename = oldUrl.split("/uploads/").pop();
+        const filePath = path.join(__dirname, "..", "uploads", filename);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       }
     }
 
-    product.image = images; // update images
+    product.image = image; // update product images
   }
 
   // Update other fields
