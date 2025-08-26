@@ -27,7 +27,28 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// Upload route
+router.post("/", upload.array("images", 10), (req, res) => {
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ message: "No files uploaded" });
+  }
+
+  const filesData = req.files.map((file) => {
+    const fullUrl = `${req.protocol}://${req.get("host")}/uploads/${file.filename}`;
+    return {
+      imageUrl: fullUrl,
+      publicId: file.filename,
+    };
+  });
+  console.log(filesData);
+
+  res.json({
+    message: "Images uploaded",
+    images: filesData,
+  });
+});
+
+module.exports = router;
+/* // Upload route
 router.post("/", upload.single("image"), (req, res) => {
   if (!req.file) return res.status(400).json({ message: "No file uploaded" });
 
@@ -40,9 +61,8 @@ router.post("/", upload.single("image"), (req, res) => {
     imageUrl: fullUrl, // <-- full URL now
     publicId: req.file.filename,
   });
-});
-
-module.exports = router;
+}); */
+// Upload multiple images
 
 /* 
 // Configure Cloudinary

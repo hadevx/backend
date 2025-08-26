@@ -5,7 +5,7 @@ const Discount = require("../models/discountModel");
 const Category = require("../models/categoryModel");
 const fs = require("fs");
 const path = require("path");
-const cloudinary = require("cloudinary").v2;
+// const cloudinary = require("cloudinary").v2;
 
 // @desc    Fetch all products
 // @route   GET /api/products
@@ -78,7 +78,7 @@ const getProductById = asyncHandler(async (req, res) => {
 // @route   POST /api/products
 // @access  Private/admin
 const createProduct = asyncHandler(async (req, res) => {
-  const { name, price, image, imagePublicId, brand, category, countInStock, description } =
+  const { name, price, image, /* imagePublicId, */ brand, category, countInStock, description } =
     req.body;
 
   if (!name || !price || !image || !description || !countInStock) {
@@ -91,7 +91,7 @@ const createProduct = asyncHandler(async (req, res) => {
     price,
     user: req.user._id,
     image,
-    imagePublicId, // save Cloudinary public_id
+    // imagePublicId, // save Cloudinary public_id
     brand: brand || "",
     category: category || "",
     countInStock,
@@ -200,14 +200,28 @@ const deleteProduct = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
 
   if (product) {
-    if (product.image && product.image.includes("/uploads/")) {
+    /*     if (product.image && product.image.includes("/uploads/")) {
       // Extract filename from URL
       const filename = product.image.split("/uploads/").pop();
       const filePath = path.join(__dirname, "..", "uploads", filename);
 
       fs.unlink(filePath, (err) => {
         if (err) console.error("Failed to delete local image:", err);
-      });
+      }); */
+    if (product.image && Array.isArray(product.image)) {
+      for (const img of product.image) {
+        // Delete local file if stored in /uploads/
+        if (img.url && img.url.includes("/uploads/")) {
+          const filename = img.url.split("/uploads/").pop();
+          const filePath = path.join(__dirname, "..", "uploads", filename);
+          fs.unlink(filePath, (err) => {
+            if (err) console.error("Failed to delete local image:", err);
+          });
+        }
+
+        // TODO: If using Cloudinary, you can also delete via img.publicId
+        // await cloudinary.uploader.destroy(img.publicId);
+      }
     }
 
     await product.deleteOne();

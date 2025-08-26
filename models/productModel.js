@@ -12,13 +12,19 @@ const productSchema = new Schema(
       type: String,
       required: true,
     },
-    image: {
+    /*   image: {
       type: String,
       required: true, // fixed typo
-    },
-    imagePublicId: {
+    }, */
+    image: [
+      {
+        url: { type: String, required: true }, // Cloudinary URL
+        publicId: { type: String, required: true }, // Cloudinary public_id
+      },
+    ],
+    /*    imagePublicId: {
       type: String, // Cloudinary public_id for deletion
-    },
+    }, */
     brand: {
       type: String,
     },
