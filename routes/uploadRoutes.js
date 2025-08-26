@@ -5,6 +5,7 @@ const streamifier = require("streamifier");
 const path = require("path");
 const fs = require("fs");
 const router = express.Router();
+const sharp = require("sharp");
 
 // Make sure uploads folder exists inside container
 const uploadPath = "/app/uploads";
@@ -27,24 +28,42 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-router.post("/", upload.array("images", 10), (req, res) => {
+router.post("/", upload.array("images", 3), async (req, res) => {
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ message: "No files uploaded" });
   }
 
-  const filesData = req.files.map((file) => {
-    const fullUrl = `${req.protocol}://${req.get("host")}/uploads/${file.filename}`;
-    return {
-      imageUrl: fullUrl,
-      publicId: file.filename,
-    };
-  });
-  console.log(filesData);
+  try {
+    const optimizedFiles = [];
 
-  res.json({
-    message: "Images uploaded",
-    images: filesData,
-  });
+    for (const file of req.files) {
+      const optimizedName = `optimized-${file.filename}.webp`;
+      const outputPath = path.join(uploadPath, optimizedName);
+
+      // Optimize image with Sharp
+      await sharp(file.path)
+        .resize({ width: 800 }) // Resize to max width 800px
+        .webp({ quality: 80 }) // Convert to WebP with 80% quality
+        .toFile(outputPath);
+
+      // Remove original uploaded file to save space
+      fs.unlinkSync(file.path);
+
+      const fullUrl = `${req.protocol}://${req.get("host")}/uploads/${optimizedName}`;
+      optimizedFiles.push({
+        imageUrl: fullUrl,
+        publicId: optimizedName,
+      });
+    }
+
+    res.json({
+      message: "Images uploaded and optimized",
+      images: optimizedFiles,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Image processing failed", error: err.message });
+  }
 });
 
 module.exports = router;
