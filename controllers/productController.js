@@ -85,12 +85,14 @@ const createProduct = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Please fill all the fields");
   }
+  // ✅ Force image to be an array of objects
+  const formattedImages = Array.isArray(image) ? image : [image];
 
   const product = {
     name,
     price,
     user: req.user._id,
-    image,
+    image: formattedImages,
     // imagePublicId, // save Cloudinary public_id
     brand: brand || "",
     category: category || "",
