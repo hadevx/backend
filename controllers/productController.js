@@ -107,13 +107,13 @@ const createProduct = asyncHandler(async (req, res) => {
 // @desc    Update a product
 // @route   PUT /api/products/:id
 // @access  Private/admin
-const updateProduct = asyncHandler(async (req, res) => {
+/* const updateProduct = asyncHandler(async (req, res) => {
   const {
     name,
     price,
     description,
     image,
-    imagePublicId,
+    // imagePublicId,
     brand,
     category,
     countInStock,
@@ -146,7 +146,7 @@ const updateProduct = asyncHandler(async (req, res) => {
   product.price = price ?? product.price;
   product.description = description ?? product.description;
   product.image = image ?? product.image;
-  product.imagePublicId = imagePublicId ?? product.imagePublicId; // save new publicId
+  // product.imagePublicId = imagePublicId ?? product.imagePublicId; // save new publicId
   product.brand = brand ?? product.brand;
   product.category = category ?? product.category;
   product.countInStock = countInStock ?? product.countInStock;
@@ -154,6 +154,58 @@ const updateProduct = asyncHandler(async (req, res) => {
 
   const updatedProduct = await product.save();
 
+  res.status(200).json(updatedProduct);
+}); */
+const updateProduct = asyncHandler(async (req, res) => {
+  const {
+    name,
+    price,
+    description,
+    images, // expect an array of { url, publicId } or just URLs
+    brand,
+    category,
+    countInStock,
+    featured,
+  } = req.body;
+
+  const product = await Product.findById(req.params.id);
+
+  if (!product) {
+    res.status(404);
+    throw new Error("Product not found");
+  }
+
+  // Delete old images that are no longer in new images array
+  if (images && Array.isArray(images)) {
+    const oldImages = product.image || [];
+
+    for (const oldImg of oldImages) {
+      // If old image is not in new images array, delete local file
+      if (!images.find((img) => (img.url ? img.url : img) === (oldImg.url ? oldImg.url : oldImg))) {
+        if (oldImg.url && oldImg.url.includes("/uploads/")) {
+          const filename = oldImg.url.split("/uploads/").pop();
+          const filePath = path.join(__dirname, "..", "uploads", filename);
+          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        }
+
+        // If using Cloudinary, delete via publicId
+        // if (oldImg.publicId) await cloudinary.uploader.destroy(oldImg.publicId);
+      }
+    }
+
+    product.image = images; // update images
+  }
+
+  // Update other fields
+  product.name = name ?? product.name;
+  product.price = price ?? product.price;
+  product.description = description ?? product.description;
+  product.brand = brand ?? product.brand;
+  product.category = category ?? product.category;
+  product.countInStock = countInStock ?? product.countInStock;
+  product.featured = featured ?? product.featured;
+
+  const updatedProduct = await product.save();
   res.status(200).json(updatedProduct);
 });
 
