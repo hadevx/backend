@@ -410,6 +410,36 @@ const resetPassword = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Get all governorates with user count
+// @route   GET /api/users/governorates
+// @access  Private/Admin
+const getGovernorates = asyncHandler(async (req, res) => {
+  // Count total users
+  const totalUsers = await User.countDocuments();
+
+  // Aggregate addresses to count users per governorate
+  const governorates = await Address.aggregate([
+    {
+      $group: {
+        _id: "$governorate",
+        count: { $sum: 1 },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        governorate: "$_id",
+        count: 1,
+      },
+    },
+  ]);
+
+  res.status(200).json({
+    totalUsers, // total number of users
+    governorates, // count per governorate
+  });
+});
+
 module.exports = {
   loginUser,
   registerUser,
@@ -431,4 +461,5 @@ module.exports = {
   forgetPassword,
   resetPassword,
   logoutAdmin,
+  getGovernorates,
 };

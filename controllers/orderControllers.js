@@ -220,6 +220,48 @@ const getUserOrders = asyncHandler(async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+// @desc    Get order stats (Delivered, Canceled, Processing)
+// @route   GET /api/orders/stats
+// @access  Private/admin
+const getOrderStats = asyncHandler(async (req, res) => {
+  try {
+    const delivered = await Order.countDocuments({ isDelivered: true });
+    const canceled = await Order.countDocuments({ isCanceled: true });
+    const processing = await Order.countDocuments({ isDelivered: false, isCanceled: false });
+    const total = await Order.countDocuments(); // total orders
+
+    res.status(200).json({ delivered, canceled, processing, total });
+  } catch (error) {
+    res.status(500);
+    throw new Error("Failed to fetch order stats");
+  }
+});
+// @desc    Get revenue statistics
+// @route   GET /api/orders/revenue
+// @access  Private/admin
+const getRevenueStats = asyncHandler(async (req, res) => {
+  // Aggregate orders by month
+  const revenue = await Order.aggregate([
+    {
+      $match: {
+        isCanceled: false, // only consider completed or processing orders
+      },
+    },
+    {
+      $group: {
+        _id: { $month: "$createdAt" },
+        totalRevenue: { $sum: "$totalPrice" },
+      },
+    },
+    { $sort: { "_id": 1 } },
+  ]);
+
+  // Calculate total revenue
+  const totalRevenue = revenue.reduce((acc, curr) => acc + curr.totalRevenue, 0);
+
+  res.status(200).json({ monthly: revenue, totalRevenue });
+});
+
 module.exports = {
   addOrderItems,
   getMyOrders,
@@ -230,4 +272,6 @@ module.exports = {
   getUserOrders,
   updateOrderToCanceled,
   checkStock,
+  getOrderStats,
+  getRevenueStats,
 };

@@ -18,6 +18,7 @@ const {
   loginAdmin,
   forgetPassword,
   resetPassword,
+  getGovernorates,
 } = require("../controllers/userController");
 
 /* /api/users */
@@ -34,6 +35,7 @@ router.post("/logout", logoutUser);
 
 // Admin routes
 router.post("/admin", loginLimiter, loginAdmin);
+router.get("/governorates", getGovernorates);
 router.get("/", protectUser, protectAdmin, getUsers);
 router.put("/:id", protectUser, updateUser);
 router.delete("/:id", protectUser, protectAdmin, deleteUser);
