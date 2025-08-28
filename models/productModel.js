@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
-// 🔹 Child Variant (Size level)
+/* // 🔹 Child Variant (Size level)
 const childVariantSchema = new Schema(
   {
     size: { type: String }, // optional (used only if product has sizes)
@@ -34,7 +34,7 @@ const parentVariantSchema = new Schema(
   },
   { _id: false }
 );
-
+ */
 const productSchema = new Schema(
   {
     user: {
@@ -78,7 +78,7 @@ const productSchema = new Schema(
       default: false,
     },
     // 🔹 Variants organized by color (with images + sizes)
-    variants: [parentVariantSchema],
+    // variants: [parentVariantSchema],
   },
   {
     timestamps: true,

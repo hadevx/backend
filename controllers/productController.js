@@ -78,7 +78,7 @@ const getProductById = asyncHandler(async (req, res) => {
 // @route   POST /api/products
 // @access  Private/admin
 const createProduct = asyncHandler(async (req, res) => {
-  const { name, price, image, variants, brand, category, countInStock, description } = req.body;
+  const { name, price, image, brand, category, countInStock, description } = req.body;
 
   if (!name || !price || !image || !description || !countInStock) {
     res.status(400);
