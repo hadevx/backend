@@ -77,7 +77,7 @@ const getProductById = asyncHandler(async (req, res) => {
 // @desc    Create a product
 // @route   POST /api/products
 // @access  Private/admin
-const createProduct = asyncHandler(async (req, res) => {
+/* const createProduct = asyncHandler(async (req, res) => {
   const { name, price, image, brand, category, countInStock, description } = req.body;
 
   if (!name || !price || !image || !description || !countInStock) {
@@ -98,6 +98,49 @@ const createProduct = asyncHandler(async (req, res) => {
     description,
   };
 
+  const createdProduct = await Product.create(product);
+  res.status(201).json(createdProduct);
+}); */
+
+const createProduct = asyncHandler(async (req, res) => {
+  const { name, price, image, brand, category, countInStock, description, variants } = req.body;
+
+  // ✅ Validation
+  if (!name || !price || !image || !description || !countInStock) {
+    res.status(400);
+    throw new Error("Please fill all the required fields");
+  }
+
+  // ✅ Format images as array of objects
+  const formattedImages = Array.isArray(image) ? image : [image];
+
+  // ✅ Format variants if provided
+  const formattedVariants = Array.isArray(variants)
+    ? variants.map((v) => ({
+        options: {
+          color: v?.options?.color || "",
+          size: v?.options?.size || "",
+        },
+        stock: v?.stock ?? 0,
+        price: v?.price ?? 0,
+        images: Array.isArray(v?.images) ? v.images : [],
+      }))
+    : [];
+
+  // ✅ Build product object
+  const product = {
+    user: req.user._id,
+    name,
+    price,
+    image: formattedImages,
+    brand: brand || "",
+    category: category || "",
+    countInStock,
+    description,
+    variants: formattedVariants,
+  };
+
+  // ✅ Save to DB
   const createdProduct = await Product.create(product);
   res.status(201).json(createdProduct);
 });

@@ -10,11 +10,13 @@ const sharp = require("sharp");
 // Make sure uploads folder exists inside container
 const uploadPath = "/app/uploads";
 const categoryUploadPath = "/app/uploads/categories";
+const variantUploadPath = "/app/uploads/variants";
 
 if (!fs.existsSync(uploadPath)) {
   fs.mkdirSync(uploadPath, { recursive: true });
 }
 if (!fs.existsSync(categoryUploadPath)) fs.mkdirSync(categoryUploadPath, { recursive: true });
+if (!fs.existsSync(variantUploadPath)) fs.mkdirSync(variantUploadPath, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadPath),
@@ -41,6 +43,17 @@ const categoryStorage = multer.diskStorage({
   },
 });
 const uploadCategory = multer({ storage: categoryStorage });
+
+// Multer storage for variants
+const variantsStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, variantUploadPath),
+  filename: (req, file, cb) => {
+    const name = path.parse(file.originalname).name.replace(/\s+/g, "-").toLowerCase();
+    const ext = path.extname(file.originalname);
+    cb(null, `${name}-${Date.now()}${ext}`);
+  },
+});
+const uploadVariant = multer({ storage: variantsStorage });
 
 router.post("/", upload.array("images", 3), async (req, res) => {
   if (!req.files || req.files.length === 0) {
@@ -101,6 +114,45 @@ router.post("/category", uploadCategory.single("image"), async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Image processing failed", error: err.message });
+  }
+});
+
+/* ----------------- Variant Images (multiple) ----------------- */
+router.post("/variant", uploadVariant.array("images", 5), async (req, res) => {
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ message: "No files uploaded" });
+  }
+
+  try {
+    const optimizedFiles = [];
+
+    for (const file of req.files) {
+      const optimizedName = `optimized-${file.filename}.webp`;
+      const outputPath = path.join(variantUploadPath, optimizedName);
+
+      // Optimize image with Sharp
+      await sharp(file.path)
+        .resize({ width: 800 }) // resize max width
+        .webp({ quality: 80 }) // convert to webp
+        .toFile(outputPath);
+
+      // remove original
+      fs.unlinkSync(file.path);
+
+      const fullUrl = `${req.protocol}://${req.get("host")}/uploads/variants/${optimizedName}`;
+      optimizedFiles.push({
+        imageUrl: fullUrl,
+        publicId: optimizedName,
+      });
+    }
+
+    res.json({
+      message: "Variant images uploaded",
+      images: optimizedFiles,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Variant image upload failed", error: err.message });
   }
 });
 module.exports = router;
