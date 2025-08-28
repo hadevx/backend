@@ -17,7 +17,7 @@ const getAllProducts = asyncHandler(async (req, res) => {
 });
 
 const getProducts = asyncHandler(async (req, res) => {
-  const pageSize = 5; // how many per page
+  const pageSize = 20; // how many per page
   const page = Number(req.query.pageNumber) || 1;
 
   // Search filter
