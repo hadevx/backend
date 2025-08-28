@@ -9,9 +9,12 @@ const sharp = require("sharp");
 
 // Make sure uploads folder exists inside container
 const uploadPath = "/app/uploads";
+const categoryUploadPath = "/app/uploads/categories";
+
 if (!fs.existsSync(uploadPath)) {
   fs.mkdirSync(uploadPath, { recursive: true });
 }
+if (!fs.existsSync(categoryUploadPath)) fs.mkdirSync(categoryUploadPath, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadPath),
@@ -27,6 +30,17 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
+
+// Multer storage for categories
+const categoryStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, categoryUploadPath),
+  filename: (req, file, cb) => {
+    const name = path.parse(file.originalname).name.replace(/\s+/g, "-").toLowerCase();
+    const ext = path.extname(file.originalname);
+    cb(null, `${name}-${Date.now()}${ext}`);
+  },
+});
+const uploadCategory = multer({ storage: categoryStorage });
 
 router.post("/", upload.array("images", 3), async (req, res) => {
   if (!req.files || req.files.length === 0) {
@@ -65,7 +79,30 @@ router.post("/", upload.array("images", 3), async (req, res) => {
     res.status(500).json({ message: "Image processing failed", error: err.message });
   }
 });
+/* ----------------- Category Image (single) ----------------- */
+router.post("/category", uploadCategory.single("image"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ message: "No file uploaded" });
 
+  try {
+    const optimizedName = `optimized-${req.file.filename}.webp`;
+    const outputPath = path.join(categoryUploadPath, optimizedName);
+
+    await sharp(req.file.path).resize({ width: 800 }).webp({ quality: 80 }).toFile(outputPath);
+
+    fs.unlinkSync(req.file.path);
+
+    res.json({
+      message: "Category image uploaded",
+      image: {
+        imageUrl: `${req.protocol}://${req.get("host")}/uploads/categories/${optimizedName}`,
+        publicId: optimizedName,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Image processing failed", error: err.message });
+  }
+});
 module.exports = router;
 /* // Upload route
 router.post("/", upload.single("image"), (req, res) => {

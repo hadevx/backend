@@ -4,7 +4,7 @@ const Category = require("../models/categoryModel");
 const createCategory = asyncHandler(async (req, res) => {
   try {
     const { name, parent, image } = req.body;
-    const category = new Category({ name, parent: parent || null });
+    const category = new Category({ name, parent: parent || null, image });
     const saved = await category.save();
     res.status(201).json(saved);
   } catch (err) {
