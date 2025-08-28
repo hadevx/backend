@@ -52,6 +52,7 @@ const getCategoryTree = async (parentId = null) => {
     categories.map(async (cat) => ({
       _id: cat._id,
       name: cat.name,
+      image: cat.image,
       children: await getCategoryTree(cat._id),
     }))
   );
@@ -62,4 +63,10 @@ router.get("/tree", async (req, res) => {
   res.json(tree);
 });
 
+router.put(
+  "/:id",
+  protectUser,
+  protectAdmin,
+  require("../controllers/categoryControllers").updateCategory
+);
 module.exports = router;
