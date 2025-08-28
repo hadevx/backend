@@ -388,7 +388,7 @@ const getTopRatedProducts = asyncHandler(async (req, res) => {
   res.status(200).json(products);
 });
 
-const updateStock = asyncHandler(async (req, res) => {
+/* const updateStock = asyncHandler(async (req, res) => {
   const { orderItems } = req.body;
 
   try {
@@ -412,7 +412,47 @@ const updateStock = asyncHandler(async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: "Error updating stock", error: error.message });
   }
+}); */
+const updateStock = asyncHandler(async (req, res) => {
+  const { orderItems } = req.body;
+
+  try {
+    for (const item of orderItems) {
+      const product = await Product.findById(item._id);
+
+      if (!product) {
+        return res.status(404).json({ message: `Product with ID ${item._id} not found` });
+      }
+
+      if (product.variants && product.variants.length > 0) {
+        // Find the variant by ID (or by options like color & size)
+        const variant = product.variants.id(item.variantId);
+        if (variant) {
+          variant.stock -= item.qty;
+          if (variant.stock < 0) variant.stock = 0;
+        } else {
+          return res.status(404).json({
+            message: `Variant with ID ${item.variantId} not found for product ${item._id}`,
+          });
+        }
+
+        // Update total product stock as sum of variant stocks
+        product.countInStock = product.variants.reduce((acc, v) => acc + v.stock, 0);
+      } else {
+        // No variants, update product stock directly
+        product.countInStock -= item.qty;
+        if (product.countInStock < 0) product.countInStock = 0;
+      }
+
+      await product.save();
+    }
+
+    res.status(200).json({ message: "Stock updated successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error updating stock", error: error.message });
+  }
 });
+
 const createShippingPrice = asyncHandler(async (req, res) => {
   const { timeToDeliver, shippingFee, minDeliveryCost } = req.body;
 
