@@ -263,7 +263,10 @@ const updateProduct = asyncHandler(async (req, res) => {
     }
     // Update variant objects
     product.variants = variants.map((v) => ({
-      _id: v._id || undefined, // keep existing _id or let Mongo generate
+      _id:
+        v._id && oldVariants.some((ov) => ov._id?.toString() === v._id?.toString())
+          ? v._id
+          : undefined,
       options: v.options || {},
       price: v.price ?? 0,
       stock: v.stock ?? 0,
