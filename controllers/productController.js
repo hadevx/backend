@@ -209,6 +209,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     category,
     countInStock,
     featured,
+    variants,
   } = req.body;
 
   const product = await Product.findById(req.params.id);
@@ -235,7 +236,40 @@ const updateProduct = asyncHandler(async (req, res) => {
 
     product.image = image; // update product images
   }
+  // --- ✅ Cleanup variant images ---
+  if (Array.isArray(variants)) {
+    const oldVariants = product.variants || [];
 
+    for (const oldVar of oldVariants) {
+      const oldImages = oldVar.images || [];
+
+      // Find updated variant by _id
+      const updatedVar = variants.find((v) => v._id?.toString() === oldVar._id?.toString());
+
+      if (updatedVar) {
+        const newImages = updatedVar.images || [];
+
+        for (const oldImg of oldImages) {
+          const oldUrl = oldImg.url ? oldImg.url : oldImg;
+          const existsInNew = newImages.some((img) => (img.url ? img.url : img) === oldUrl);
+
+          if (!existsInNew && oldUrl.includes("/uploads/variants/")) {
+            const filename = oldUrl.split("/uploads/variants/").pop();
+            const filePath = path.join(__dirname, "..", "uploads", "variants", filename);
+            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+          }
+        }
+      }
+    }
+    // Update variant objects
+    product.variants = variants.map((v) => ({
+      _id: v._id || undefined, // keep existing _id or let Mongo generate
+      options: v.options || {},
+      price: v.price ?? 0,
+      stock: v.stock ?? 0,
+      images: v.images || [],
+    }));
+  }
   // Update other fields
   product.name = name ?? product.name;
   product.price = price ?? product.price;
