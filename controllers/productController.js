@@ -237,41 +237,33 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.image = image; // update product images
   }
   // --- ✅ Cleanup variant images ---
+  // --- Update variants ---
   if (Array.isArray(variants)) {
     const oldVariants = product.variants || [];
 
-    for (const oldVar of oldVariants) {
-      const oldImages = oldVar.images || [];
+    product.variants = variants.map((v) => {
+      const oldVar = oldVariants.find((ov) => ov._id?.toString() === v._id?.toString());
+      const oldImages = oldVar?.images || [];
 
-      // Find updated variant by _id
-      const updatedVar = variants.find((v) => v._id?.toString() === oldVar._id?.toString());
-
-      if (updatedVar) {
-        const newImages = updatedVar.images || [];
-
-        for (const oldImg of oldImages) {
-          const oldUrl = oldImg.url ? oldImg.url : oldImg;
-          const existsInNew = newImages.some((img) => (img.url ? img.url : img) === oldUrl);
-
-          if (!existsInNew && oldUrl.includes("/uploads/variants/")) {
-            const filename = oldUrl.split("/uploads/variants/").pop();
-            const filePath = path.join(__dirname, "..", "uploads", "variants", filename);
-            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-          }
+      // Remove old variant images if replaced
+      const newImages = v.images || [];
+      for (const oldImg of oldImages) {
+        const existsInNew = newImages.some((img) => img.url === oldImg.url);
+        if (!existsInNew && oldImg.url.includes("/uploads/variants/")) {
+          const filename = oldImg.url.split("/uploads/variants/").pop();
+          const filePath = path.join(__dirname, "..", "uploads/variants", filename);
+          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         }
       }
-    }
-    // Update variant objects
-    product.variants = variants.map((v) => ({
-      _id:
-        v._id && oldVariants.some((ov) => ov._id?.toString() === v._id?.toString())
-          ? v._id
-          : undefined,
-      options: v.options || {},
-      price: v.price ?? 0,
-      stock: v.stock ?? 0,
-      images: v.images || [],
-    }));
+
+      return {
+        _id: v._id || undefined,
+        options: v.options || {},
+        price: v.price ?? 0,
+        stock: v.stock ?? 0,
+        images: newImages,
+      };
+    });
   }
   // Update other fields
   product.name = name ?? product.name;
