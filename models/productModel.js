@@ -2,18 +2,20 @@ const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
 const variantSchema = new Schema({
-  options: {
-    color: { type: String }, // optional
-    size: { type: String }, // optional
-  },
-  stock: { type: Number, required: true },
-  price: { type: Number, default: 0 }, // optional override
+  color: { type: String, required: true },
   images: [
     {
-      url: { type: String, required: true }, // Cloudinary URL
-      publicId: { type: String, required: true }, // Cloudinary public_id
+      url: { type: String, required: true },
+      publicId: { type: String, required: true },
     },
-  ], // optional, only if you want per-color images
+  ],
+  sizes: [
+    {
+      size: { type: String, required: true },
+      stock: { type: Number, required: true },
+      price: { type: Number, default: 0 },
+    },
+  ],
 });
 
 const productSchema = new Schema(
@@ -30,8 +32,8 @@ const productSchema = new Schema(
 
     image: [
       {
-        url: { type: String, required: true }, // Cloudinary URL
-        publicId: { type: String, required: true }, // Cloudinary public_id
+        url: { type: String, required: true },
+        publicId: { type: String, required: true },
       },
     ],
 
@@ -39,7 +41,9 @@ const productSchema = new Schema(
       type: String,
     },
     category: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      ref: "Category",
     },
     description: {
       type: String,
@@ -58,7 +62,19 @@ const productSchema = new Schema(
       type: Boolean,
       default: false,
     },
-    variants: [variantSchema], // list of all possible combinations
+    variants: [variantSchema],
+    discountBy: {
+      type: Number,
+      default: 0, // 0.05 = 5%
+    },
+    discountedPrice: {
+      type: Number,
+      default: 0, // calculated price after discount
+    },
+    hasDiscount: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

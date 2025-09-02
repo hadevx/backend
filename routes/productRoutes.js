@@ -21,6 +21,7 @@ const {
   getAllProducts,
   fetchProductsByIds,
   featuredProducts,
+  updateProductVariants,
 } = require("../controllers/productController");
 const { protectUser, protectAdmin } = require("../middleware/authMiddleware");
 
@@ -47,7 +48,7 @@ router.delete("/discount", protectUser, protectAdmin, deleteDiscount);
 
 router.get("/delivery", getDeliveryStatus);
 router.post("/update-stock", updateStock);
-router.get("/category/:category", getProductsByCategory);
+router.get("/category/:id", getProductsByCategory);
 
 /* router.post("/delete-image", async (req, res) => {
   try {
@@ -62,6 +63,7 @@ router.get("/category/:category", getProductsByCategory);
 }); */
 router.get("/:id", getProductById);
 router.put("/:id", protectUser, protectAdmin, updateProduct);
+router.put("/variant/:id", protectUser, protectAdmin, updateProductVariants);
 router.delete("/:id", protectUser, protectAdmin, deleteProduct);
 router.get("/product/:id", getProductById);
 

@@ -17,7 +17,7 @@ const getAllProducts = asyncHandler(async (req, res) => {
 });
 
 const getProducts = asyncHandler(async (req, res) => {
-  const pageSize = 20; // how many per page
+  const pageSize = 5;
   const page = Number(req.query.pageNumber) || 1;
 
   // Search filter
@@ -29,14 +29,15 @@ const getProducts = asyncHandler(async (req, res) => {
   // Paginate + sort newest first
   const products = await Product.find({ ...keyword })
     .sort({ createdAt: -1 })
+    .populate("category", "name")
     .limit(pageSize)
     .skip(pageSize * (page - 1));
 
   res.json({
     products,
     page,
-    pages: Math.ceil(count / pageSize), // total pages
-    total: count, // total products
+    pages: Math.ceil(count / pageSize),
+    total: count,
   });
 });
 
@@ -53,24 +54,36 @@ const fetchProductsByIds = asyncHandler(async (req, res) => {
 });
 
 const getLatestProducts = asyncHandler(async (req, res) => {
-  const products = await Product.find({}).sort({ createdAt: -1 }).limit(5);
+  const products = await Product.find({}).sort({ createdAt: -1 }).limit(3);
 
   if (!products || products.length === 0) {
     res.status(404);
     throw new Error("No products found");
   }
+
   res.status(200).json(products);
 });
 
 // @desc    Get one product
 // @route   GET /api/products/:id
 // @access  Public
-const getProductById = asyncHandler(async (req, res) => {
-  const product = await Product.findById(req.params.id);
+/* const getProductById = asyncHandler(async (req, res) => {
+  const product = await Product.findById(req.params.id).populate("category", "name");
   if (!product) {
     res.status(404);
     throw new Error("Product not found");
   }
+  res.status(200).json(product);
+}); */
+const getProductById = asyncHandler(async (req, res) => {
+  // 1. Fetch the product and populate category
+  const product = await Product.findById(req.params.id).populate("category", "name parent");
+  if (!product) {
+    res.status(404);
+    throw new Error("Product not found");
+  }
+
+  // 6. Return product + discount info
   res.status(200).json(product);
 });
 
@@ -111,33 +124,17 @@ const createProduct = asyncHandler(async (req, res) => {
     throw new Error("Please fill all the required fields");
   }
 
-  // ✅ Format images as array of objects
-  const formattedImages = Array.isArray(image) ? image : [image];
-
-  // ✅ Format variants if provided
-  const formattedVariants = Array.isArray(variants)
-    ? variants.map((v) => ({
-        options: {
-          color: v?.options?.color || "",
-          size: v?.options?.size || "",
-        },
-        stock: v?.stock ?? 0,
-        price: v?.price ?? 0,
-        images: Array.isArray(v?.images) ? v.images : [],
-      }))
-    : [];
-
   // ✅ Build product object
   const product = {
     user: req.user._id,
     name,
     price,
-    image: formattedImages,
+    image,
     brand: brand || "",
     category: category || "",
     countInStock,
     description,
-    variants: formattedVariants,
+    variants,
   };
 
   // ✅ Save to DB
@@ -209,7 +206,6 @@ const updateProduct = asyncHandler(async (req, res) => {
     category,
     countInStock,
     featured,
-    variants,
   } = req.body;
 
   const product = await Product.findById(req.params.id);
@@ -236,9 +232,8 @@ const updateProduct = asyncHandler(async (req, res) => {
 
     product.image = image; // update product images
   }
-  // --- ✅ Cleanup variant images ---
-  // --- Update variants ---
-  if (Array.isArray(variants)) {
+
+  /* if (Array.isArray(variants)) {
     const oldVariants = product.variants || [];
 
     product.variants = variants.map((v) => {
@@ -258,13 +253,17 @@ const updateProduct = asyncHandler(async (req, res) => {
 
       return {
         _id: v._id || undefined,
-        options: v.options || {},
-        price: v.price ?? 0,
-        stock: v.stock ?? 0,
+        color: v.color,
         images: newImages,
+        sizes:
+          v.sizes?.map((s) => ({
+            size: s.size,
+            stock: s.stock ?? 0,
+            price: s.price ?? 0,
+          })) || [],
       };
     });
-  }
+  } */
   // Update other fields
   product.name = name ?? product.name;
   product.price = price ?? product.price;
@@ -278,6 +277,119 @@ const updateProduct = asyncHandler(async (req, res) => {
   res.status(200).json(updatedProduct);
 });
 
+// Update product variants only
+/* const updateProductVariants = asyncHandler(async (req, res) => {
+  const { id } = req.params; // productId
+  const { variants } = req.body;
+
+  const product = await Product.findById(id);
+  if (!product) {
+    res.status(404);
+    throw new Error("Product not found");
+  }
+
+  if (!Array.isArray(variants)) {
+    res.status(400);
+    throw new Error("Variants must be an array");
+  }
+
+  const oldVariants = product.variants || [];
+
+  product.variants = variants.map((v) => {
+    const oldVar = oldVariants.find((ov) => ov._id?.toString() === v._id?.toString());
+    const oldImages = oldVar?.images || [];
+
+    // cleanup variant images that were removed
+    const newImages = v.images || [];
+    for (const oldImg of oldImages) {
+      const existsInNew = newImages.some((img) => img.url === oldImg.url);
+      if (!existsInNew && oldImg.url.includes("/uploads/variants/")) {
+        const filename = oldImg.url.split("/uploads/variants/").pop();
+        const filePath = path.join(__dirname, "..", "uploads/variants", filename);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      }
+    }
+
+    return {
+      _id: v._id || undefined, // keep if exists, or create new
+      color: v.color,
+      images: newImages,
+      sizes:
+        v.sizes?.map((s) => ({
+          size: s.size,
+          stock: s.stock ?? 0,
+          price: s.price ?? 0,
+        })) || [],
+    };
+  });
+
+  const updatedProduct = await product.save();
+  res.status(200).json(updatedProduct);
+}); */
+
+// controllers/productController.js
+/* const updateProductVariants = asyncHandler(async (req, res) => {
+  const { productId, variantId } = req.params;
+  const { color, images, sizes } = req.body;
+
+  const product = await Product.findById(productId);
+  if (!product) {
+    res.status(404);
+    throw new Error("Product not found");
+  }
+
+  // find variant by id
+  const variant = product.variants.id(variantId);
+  if (!variant) {
+    res.status(404);
+    throw new Error("Variant not found");
+  }
+
+  // update fields
+  if (color !== undefined) variant.color = color;
+  if (images !== undefined) variant.images = images;
+  if (sizes !== undefined) {
+    variant.sizes = sizes.map((s) => ({
+      size: s.size,
+      stock: s.stock ?? 0,
+      price: s.price ?? 0,
+    }));
+  }
+
+  await product.save();
+  res.status(200).json(variant);
+}); */
+
+// controllers/productController.js
+const updateProductVariants = asyncHandler(async (req, res) => {
+  const { variantId, color, sizes, images } = req.body;
+
+  if (!variantId) {
+    res.status(400);
+    throw new Error("variantId is required");
+  }
+
+  const product = await Product.findById(req.params.id);
+  if (!product) {
+    res.status(404);
+    throw new Error("Product not found");
+  }
+
+  const variantIndex = product.variants.findIndex((v) => v._id.toString() === variantId);
+  if (variantIndex === -1) {
+    res.status(404);
+    throw new Error("Variant not found");
+  }
+
+  // Update fields
+  if (color) product.variants[variantIndex].color = color;
+  if (sizes) product.variants[variantIndex].sizes = sizes;
+  if (images) product.variants[variantIndex].images = images;
+
+  const updatedProduct = await product.save();
+  res.status(200).json(updatedProduct.variants[variantIndex]);
+});
+
 const featuredProducts = asyncHandler(async (req, res) => {
   try {
     const products = await Product.find({ featured: true }).limit(3);
@@ -287,18 +399,18 @@ const featuredProducts = asyncHandler(async (req, res) => {
   }
 });
 
+// Get products by category (including children)
 const getProductsByCategory = asyncHandler(async (req, res) => {
-  const { category } = req.params;
+  const { id } = req.params; // category id from URL
 
-  // Find the main category document by name
-  const categoryDoc = await Category.findOne({ name: category });
-
-  if (!categoryDoc) {
+  // 1. Check if category exists
+  const category = await Category.findById(id);
+  if (!category) {
     res.status(404);
     throw new Error("Category not found");
   }
 
-  // Recursive function to get all child category IDs
+  // 2. Recursive function to get all child category IDs
   const getAllCategoryIds = async (catId) => {
     const ids = [catId];
     const children = await Category.find({ parent: catId });
@@ -308,11 +420,13 @@ const getProductsByCategory = asyncHandler(async (req, res) => {
     return ids;
   };
 
-  const categoryIds = await getAllCategoryIds(categoryDoc._id);
+  // 3. Collect all category IDs (parent + children)
+  const categoryIds = await getAllCategoryIds(category._id);
 
-  // Now find products in any of these categories
-  const products = await Product.find({ category: { $in: categoryIds } });
+  // 4. Find products belonging to any of those categories
+  const products = await Product.find({ category: { $in: categoryIds } }).sort({ createdAt: -1 });
 
+  console.log(products);
   res.status(200).json(products);
 });
 
@@ -506,8 +620,21 @@ const getDeliveryStatus = asyncHandler(async (req, res) => {
 const createDiscount = asyncHandler(async (req, res) => {
   const { discountBy, category } = req.body;
 
+  // 1️⃣ Create the discount
   const discount = await Discount.create({ discountBy, category });
 
+  // 2️⃣ Update all products in the discounted categories
+  const products = await Product.find({ category: { $in: category } });
+
+  for (const product of products) {
+    product.hasDiscount = discountBy > 0;
+    product.discountBy = discountBy;
+    product.discountedPrice = product.price - product.price * discountBy;
+
+    await product.save();
+  }
+
+  // 3️⃣ Return the created discount
   res.json(discount);
 });
 
@@ -611,4 +738,5 @@ module.exports = {
   getAllProducts,
   fetchProductsByIds,
   featuredProducts,
+  updateProductVariants,
 };
