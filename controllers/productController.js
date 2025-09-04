@@ -206,6 +206,8 @@ const updateProduct = asyncHandler(async (req, res) => {
     category,
     countInStock,
     featured,
+    hasDiscount,
+    discountBy,
   } = req.body;
 
   const product = await Product.findById(req.params.id);
@@ -272,7 +274,9 @@ const updateProduct = asyncHandler(async (req, res) => {
   product.category = category ?? product.category;
   product.countInStock = countInStock ?? product.countInStock;
   product.featured = featured ?? product.featured;
-
+  product.hasDiscount = hasDiscount ?? product.hasDiscount;
+  product.discountBy = discountBy ?? product.discountBy;
+  product.discountedPrice = hasDiscount ? product.price - discountBy : 0;
   const updatedProduct = await product.save();
   res.status(200).json(updatedProduct);
 });
@@ -362,6 +366,7 @@ const updateProduct = asyncHandler(async (req, res) => {
 
 // controllers/productController.js
 const updateProductVariants = asyncHandler(async (req, res) => {
+  const { id } = req.params; // productId
   const { variantId, color, sizes, images } = req.body;
 
   if (!variantId) {
@@ -369,7 +374,7 @@ const updateProductVariants = asyncHandler(async (req, res) => {
     throw new Error("variantId is required");
   }
 
-  const product = await Product.findById(req.params.id);
+  const product = await Product.findById(id);
   if (!product) {
     res.status(404);
     throw new Error("Product not found");
@@ -383,11 +388,43 @@ const updateProductVariants = asyncHandler(async (req, res) => {
 
   // Update fields
   if (color) product.variants[variantIndex].color = color;
-  if (sizes) product.variants[variantIndex].sizes = sizes;
+  if (sizes && Array.isArray(sizes)) {
+    product.variants[variantIndex].sizes = sizes.map((s) => ({
+      size: s.size,
+      stock: s.stock,
+      price: s.price ?? 0,
+    }));
+  }
   if (images) product.variants[variantIndex].images = images;
 
+  // Update total countInStock based on all variants
+  product.countInStock = product.variants.reduce((total, v) => {
+    return total + v.sizes.reduce((sum, s) => sum + (s.stock || 0), 0);
+  }, 0);
   const updatedProduct = await product.save();
   res.status(200).json(updatedProduct.variants[variantIndex]);
+});
+
+// productController.js
+const deleteProductVariant = asyncHandler(async (req, res) => {
+  const { id } = req.params; // productId
+  const { variantId } = req.body;
+
+  if (!variantId) {
+    res.status(400);
+    throw new Error("variantId is required");
+  }
+
+  const product = await Product.findById(id);
+  if (!product) {
+    res.status(404);
+    throw new Error("Product not found");
+  }
+
+  product.variants = product.variants.filter((v) => v._id.toString() !== variantId);
+  await product.save();
+
+  res.status(200).json({ message: "Variant deleted successfully" });
 });
 
 const featuredProducts = asyncHandler(async (req, res) => {
@@ -561,28 +598,46 @@ const updateStock = asyncHandler(async (req, res) => {
 
   try {
     for (const item of orderItems) {
-      const product = await Product.findById(item._id);
+      const product = await Product.findById(item.product); // 🔹 fixed
 
       if (!product) {
-        return res.status(404).json({ message: `Product with ID ${item._id} not found` });
+        return res.status(404).json({ message: `Product with ID ${item.productId} not found` });
       }
 
       if (product.variants && product.variants.length > 0) {
-        // Find the variant by ID (or by options like color & size)
+        // Find the variant by ID
         const variant = product.variants.id(item.variantId);
-        if (variant) {
-          variant.stock -= item.qty;
-          if (variant.stock < 0) variant.stock = 0;
-        } else {
+        if (!variant) {
           return res.status(404).json({
-            message: `Variant with ID ${item.variantId} not found for product ${item._id}`,
+            message: `Variant with ID ${item.variantId} not found for product ${item.productId}`,
           });
         }
 
-        // Update total product stock as sum of variant stocks
-        product.countInStock = product.variants.reduce((acc, v) => acc + v.stock, 0);
+        // Find size (optional)
+        if (item.variantSize) {
+          const sizeObj = variant.sizes.find((s) => s.size === item.variantSize);
+          if (!sizeObj) {
+            return res.status(404).json({
+              message: `Size ${item.variantSize} not found for variant ${item.variantId}`,
+            });
+          }
+
+          sizeObj.stock -= item.qty;
+          if (sizeObj.stock < 0) sizeObj.stock = 0;
+        } else {
+          // No sizes, just decrease variant stock
+          variant.stock -= item.qty;
+          if (variant.stock < 0) variant.stock = 0;
+        }
+
+        // Update total product stock
+        product.countInStock = product.variants.reduce(
+          (acc, v) =>
+            acc + (v.sizes?.length ? v.sizes.reduce((sum, s) => sum + s.stock, 0) : v.stock || 0),
+          0
+        );
       } else {
-        // No variants, update product stock directly
+        // No variants → update product stock directly
         product.countInStock -= item.qty;
         if (product.countInStock < 0) product.countInStock = 0;
       }
@@ -652,9 +707,25 @@ const updateDiscounts = asyncHandler(async (req, res) => {
 });
 
 const deleteDiscount = asyncHandler(async (req, res) => {
-  const { id } = req.body;
-  const deleteDiscount = await Discount.findOneAndDelete(id);
-  res.json(deleteDiscount);
+  const { id } = req.params;
+  console.log(id);
+  // 1. Delete the discount
+  const discount = await Discount.findByIdAndDelete(id);
+  if (!discount) {
+    res.status(404);
+    throw new Error("Discount not found");
+  }
+
+  // 2. Reset products linked to this discount's categories
+  await Product.updateMany(
+    { category: { $in: discount.category } }, // products in those categories
+    {
+      $set: { hasDiscount: false },
+      $unset: { discountedPrice: "" }, // remove discountedPrice field
+    }
+  );
+
+  res.json({ message: "Discount deleted and products updated" });
 });
 
 const getDiscountStatus = asyncHandler(async (req, res) => {
@@ -739,4 +810,5 @@ module.exports = {
   fetchProductsByIds,
   featuredProducts,
   updateProductVariants,
+  deleteProductVariant,
 };

@@ -10,7 +10,7 @@ const orderSchema = new Schema(
     },
     orderItems: [
       {
-        name: { type: String, required: true },
+        name: { type: String, required: true }, // product name at order time
         qty: { type: Number, required: true },
         image: [
           {
@@ -18,8 +18,19 @@ const orderSchema = new Schema(
             publicId: String,
           },
         ],
-        price: { type: Number, required: true },
+        price: { type: Number, required: true }, // price at order time
         product: { type: mongoose.Schema.Types.ObjectId, required: true, ref: "Product" },
+
+        // 🔹 Variant details
+        variantId: { type: mongoose.Schema.Types.ObjectId }, // reference to Product.variants._id
+        variantColor: { type: String },
+        variantSize: { type: String }, // which size was chosen
+        variantImage: [
+          {
+            url: { type: String, required: true },
+            publicId: String,
+          },
+        ],
       },
     ],
     shippingAddress: {

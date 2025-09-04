@@ -18,16 +18,13 @@ const addOrderItems = asyncHandler(async (req, res) => {
     isPaid,
   } = req.body;
 
-  if (orderItems && orderItems.length === 0) {
+  if (!orderItems || orderItems.length === 0) {
     res.status(400);
     throw new Error("No order items");
   }
+
   const order = new Order({
-    orderItems: orderItems.map((x) => ({
-      ...x,
-      product: x._id,
-      _id: undefined,
-    })),
+    orderItems,
     user: req.user._id,
     shippingAddress,
     paymentMethod,
@@ -37,12 +34,18 @@ const addOrderItems = asyncHandler(async (req, res) => {
     totalPrice,
     isPaid,
   });
+
   const createdOrder = await order.save();
 
-  // Send email to admin after the order is created
-  await sendOrderEmail(createdOrder);
+  // Optionally populate product + variant info before returning
+  const populatedOrder = await Order.findById(createdOrder._id)
+    .populate("user", "name email")
+    .populate("orderItems.product", "name");
 
-  res.status(201).json(createdOrder);
+  // Send email to admin after the order is created
+  await sendOrderEmail(populatedOrder);
+
+  res.status(201).json(populatedOrder);
 });
 
 // @desc    Get logged in user orders
@@ -129,38 +132,56 @@ const updateOrderToCanceled = asyncHandler(async (req, res) => {
   }
 });
 
-const checkStock = asyncHandler(async (req, res) => {
-  const { orderItems } = req.body; // [{ _id, qty, name, ... }]
+// POST /api/orders/check-stock
 
-  if (!orderItems || !Array.isArray(orderItems)) {
+// POST /api/orders/check-stock
+const checkStock = asyncHandler(async (req, res) => {
+  const cartItems = req.body; // array of { productId, variantId, size, qty }
+  console.log("cartItems", cartItems);
+
+  if (!cartItems || !Array.isArray(cartItems)) {
     res.status(400);
-    throw new Error("Invalid order items");
+    throw new Error("Invalid cart items");
   }
 
   const outOfStockItems = [];
 
-  for (const item of orderItems) {
-    const product = await Product.findById(item._id);
+  for (const item of cartItems) {
+    const product = await Product.findById(item.productId);
+
     if (!product) {
-      outOfStockItems.push({
-        productId: item._id,
-        name: item.name || "Unknown",
-        reason: "Product not found",
-      });
-    } else if (item.qty > product.countInStock) {
-      outOfStockItems.push({
-        productId: item._id,
-        name: product.name,
-        reason: `Only ${product.countInStock} left in stock`,
-      });
+      outOfStockItems.push({ ...item, reason: "Product not found" });
+      continue;
+    }
+
+    // Product with variants
+    if (item.variantId) {
+      const variant = product.variants.find((v) => v._id.toString() === item.variantId);
+
+      if (!variant) {
+        outOfStockItems.push({ ...item, reason: "Variant not found" });
+        continue;
+      }
+
+      const sizeObj = variant.sizes.find((s) => s.size === item.size);
+
+      if (!sizeObj) {
+        outOfStockItems.push({ ...item, reason: "Size not found" });
+        continue;
+      }
+
+      if (item.qty > sizeObj.stock) {
+        outOfStockItems.push({ ...item, availableStock: sizeObj.stock });
+      }
+    } else {
+      // Product without variants
+      if (item.qty > product.countInStock) {
+        outOfStockItems.push({ ...item, availableStock: product.countInStock });
+      }
     }
   }
 
-  if (outOfStockItems.length) {
-    return res.status(200).json({ success: false, outOfStockItems });
-  }
-
-  return res.status(200).json({ success: true });
+  res.json({ outOfStockItems });
 });
 
 // @desc    Get all orders

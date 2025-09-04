@@ -22,6 +22,7 @@ const {
   fetchProductsByIds,
   featuredProducts,
   updateProductVariants,
+  deleteProductVariant,
 } = require("../controllers/productController");
 const { protectUser, protectAdmin } = require("../middleware/authMiddleware");
 
@@ -44,7 +45,7 @@ router.get("/category", getCategories);
 router.post("/discount", protectUser, protectAdmin, createDiscount);
 router.put("/discount", protectUser, protectAdmin, updateDiscounts);
 router.get("/discount", getDiscountStatus);
-router.delete("/discount", protectUser, protectAdmin, deleteDiscount);
+router.delete("/discount/:id", protectUser, protectAdmin, deleteDiscount);
 
 router.get("/delivery", getDeliveryStatus);
 router.post("/update-stock", updateStock);
@@ -64,6 +65,7 @@ router.get("/category/:id", getProductsByCategory);
 router.get("/:id", getProductById);
 router.put("/:id", protectUser, protectAdmin, updateProduct);
 router.put("/variant/:id", protectUser, protectAdmin, updateProductVariants);
+router.delete("/variant/:id", protectUser, protectAdmin, deleteProductVariant);
 router.delete("/:id", protectUser, protectAdmin, deleteProduct);
 router.get("/product/:id", getProductById);
 
