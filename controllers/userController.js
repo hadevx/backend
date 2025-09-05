@@ -83,9 +83,9 @@ const loginAdmin = asyncHandler(async (req, res) => {
 // @route   POST /api/users
 // @access  public
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password, phone } = req.body;
+  const { name, email, password, confirmPassword, phone } = req.body;
 
-  if (!name || !email || !password || !phone) {
+  if (!name || !email || !password || !confirmPassword || !phone) {
     res.status(400);
     throw new Error("Invalid user data");
   }

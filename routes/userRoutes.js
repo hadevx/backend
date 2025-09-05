@@ -20,12 +20,12 @@ const {
   resetPassword,
   getGovernorates,
 } = require("../controllers/userController");
-
+const { registerValidation, loginValidation } = require("../middleware/validateMiddleware");
 /* /api/users */
 
 // Client routes
-router.post("/login", loginUser);
-router.post("/register", registerLimiter, registerUser);
+router.post("/login", loginValidation, loginUser);
+router.post("/register", registerLimiter, registerValidation, registerUser);
 router.get("/address/:userId", protectUser, getAddress);
 router.post("/address", protectUser, createAddress);
 router.put("/address", protectUser, updateAddress);
@@ -34,7 +34,7 @@ router.put("/profile", protectUser, updateUserProfile);
 router.post("/logout", logoutUser);
 
 // Admin routes
-router.post("/admin", loginLimiter, loginAdmin);
+router.post("/admin", loginLimiter, loginValidation, loginAdmin);
 router.get("/governorates", getGovernorates);
 router.get("/", protectUser, protectAdmin, getUsers);
 router.put("/:id", protectUser, updateUser);
