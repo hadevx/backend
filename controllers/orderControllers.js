@@ -197,25 +197,48 @@ const checkStock = asyncHandler(async (req, res) => {
   }
 }); */
 const getOrders = asyncHandler(async (req, res) => {
-  const pageSize = 5; // how many orders per page
+  const pageSize = 5;
   const page = Number(req.query.pageNumber) || 1;
 
   try {
-    // Count total orders
+    // Total orders count
     const count = await Order.countDocuments();
 
-    // Fetch paginated orders, newest first
+    // Paginated orders for current page
     const orders = await Order.find({})
       .sort({ createdAt: -1 })
       .skip(pageSize * (page - 1))
       .limit(pageSize)
       .populate("user", "name email");
 
+    // Aggregate totals for all orders (excluding canceled)
+    const totals = await Order.aggregate([
+      { $match: { isCanceled: false } },
+      {
+        $project: {
+          totalPrice: 1,
+          itemsCount: { $size: "$orderItems" }, // get the number of items in each order
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: "$totalPrice" },
+          totalItems: { $sum: "$itemsCount" }, // sum items across all orders
+        },
+      },
+    ]);
+
+    const totalRevenue = totals[0]?.totalRevenue?.toFixed(3) || "0.000";
+    const totalItems = totals[0]?.totalItems || 0;
+
     res.status(200).json({
       orders,
       page,
-      pages: Math.ceil(count / pageSize), // total pages
-      total: count, // total orders
+      pages: Math.ceil(count / pageSize),
+      total: count,
+      totalRevenue,
+      totalItems,
     });
   } catch (err) {
     console.error(err);
