@@ -5,7 +5,6 @@ const Discount = require("../models/discountModel");
 const Category = require("../models/categoryModel");
 const fs = require("fs");
 const path = require("path");
-// const cloudinary = require("cloudinary").v2;
 
 // @desc    Fetch all products
 // @route   GET /api/products
@@ -54,7 +53,7 @@ const fetchProductsByIds = asyncHandler(async (req, res) => {
 });
 
 const getLatestProducts = asyncHandler(async (req, res) => {
-  const products = await Product.find({}).sort({ createdAt: -1 }).limit(3);
+  const products = await Product.find({}).sort({ createdAt: -1 }).limit(6);
 
   if (!products || products.length === 0) {
     res.status(404);
