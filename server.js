@@ -63,7 +63,16 @@ app.use("/api/category", categoryRoutes);
 app.use("/api/payment", paymentRoutes);
 
 // app.use("/uploads", express.static(path.join(__dirname, "./uploads")));
-app.use("/uploads", express.static("/app/uploads"));
+app.use(
+  "/uploads",
+  express.static("/app/uploads", {
+    maxAge: "30d", // browser cache max-age
+    etag: true, // enable ETag headers
+    setHeaders: (res, path) => {
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    },
+  })
+);
 
 app.get("/", (req, res) => {
   res.send("API intialized");
