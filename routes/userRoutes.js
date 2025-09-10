@@ -20,14 +20,18 @@ const {
   resetPassword,
   getGovernorates,
 } = require("../controllers/userController");
-const { registerValidation, loginValidation } = require("../middleware/validateMiddleware");
+const {
+  registerValidation,
+  loginValidation,
+  addressValidation,
+} = require("../middleware/validateMiddleware");
 /* /api/users */
 
 // Client routes
 router.post("/login", loginValidation, loginUser);
 router.post("/register", registerLimiter, registerValidation, registerUser);
 router.get("/address/:userId", protectUser, getAddress);
-router.post("/address", protectUser, createAddress);
+router.post("/address", protectUser, addressValidation, createAddress);
 router.put("/address", protectUser, updateAddress);
 router.get("/profile", protectUser, getUserProfile);
 router.put("/profile", protectUser, updateUserProfile);

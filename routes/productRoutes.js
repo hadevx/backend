@@ -30,12 +30,12 @@ const { protectUser, protectAdmin } = require("../middleware/authMiddleware");
 
 /* PRODUCTS */
 router.get("/latest", getLatestProducts);
+router.get("/featured", featuredProducts);
 router.put("/delivery", protectUser, protectAdmin, createShippingPrice);
 router.get("/", getProducts);
 router.get("/all", getAllProducts);
 router.post("/", protectUser, protectAdmin, createProduct);
 router.post("/fetch-by-ids", fetchProductsByIds);
-router.get("/featured", featuredProducts);
 /* CATEGORY */
 router.post("/create-category", protectUser, protectAdmin, createCategory);
 router.delete("/category", protectUser, protectAdmin, deleteCategory);

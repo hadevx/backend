@@ -35,4 +35,33 @@ const loginValidation = [
   body("password").trim().notEmpty().withMessage("Password is required"),
 ];
 
-module.exports = { registerValidation, loginValidation };
+const addressValidation = [
+  body("governorate").notEmpty().withMessage("Governorate is required"),
+
+  body("city").notEmpty().withMessage("City is required"),
+
+  body("block")
+    .trim()
+    .notEmpty()
+    .withMessage("Block is required")
+    .matches(/^[a-zA-Z0-9\s-]+$/)
+    .withMessage("Block can only contain letters, numbers, spaces, and dashes"),
+
+  // street (allow letters, numbers, spaces)
+  body("street")
+    .trim()
+    .notEmpty()
+    .withMessage("Street is required")
+    .matches(/^[a-zA-Z0-9\s-]+$/)
+    .withMessage("Street can only contain letters, numbers, spaces, and dashes"),
+
+  // house (can be numeric or alphanumeric like "10" or "10B")
+  body("house")
+    .trim()
+    .notEmpty()
+    .withMessage("House is required")
+    .matches(/^[a-zA-Z0-9\s-]+$/)
+    .withMessage("House can only contain letters, numbers, spaces, and dashes"),
+];
+
+module.exports = { registerValidation, loginValidation, addressValidation };

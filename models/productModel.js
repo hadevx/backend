@@ -37,9 +37,6 @@ const productSchema = new Schema(
       },
     ],
 
-    brand: {
-      type: String,
-    },
     category: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
@@ -63,6 +60,7 @@ const productSchema = new Schema(
       default: false,
     },
     variants: [variantSchema],
+
     discountBy: {
       type: Number,
       default: 0, // 0.05 = 5%

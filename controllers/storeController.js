@@ -3,6 +3,7 @@ const Store = require("../models/storeModel");
 
 const updateStoreStatus = asyncHandler(async (req, res) => {
   const { status, banner } = req.body;
+
   const store = await Store.findOne({});
   if (store) {
     store.status = status || store.status;

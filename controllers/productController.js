@@ -11,7 +11,6 @@ const path = require("path");
 // @access  Public
 const getAllProducts = asyncHandler(async (req, res) => {
   const products = await Product.find({});
-
   res.json(products);
 });
 
@@ -63,17 +62,6 @@ const getLatestProducts = asyncHandler(async (req, res) => {
   res.status(200).json(products);
 });
 
-// @desc    Get one product
-// @route   GET /api/products/:id
-// @access  Public
-/* const getProductById = asyncHandler(async (req, res) => {
-  const product = await Product.findById(req.params.id).populate("category", "name");
-  if (!product) {
-    res.status(404);
-    throw new Error("Product not found");
-  }
-  res.status(200).json(product);
-}); */
 const getProductById = asyncHandler(async (req, res) => {
   // 1. Fetch the product and populate category
   const product = await Product.findById(req.params.id).populate("category", "name parent");
@@ -86,36 +74,8 @@ const getProductById = asyncHandler(async (req, res) => {
   res.status(200).json(product);
 });
 
-// @desc    Create a product
-// @route   POST /api/products
-// @access  Private/admin
-/* const createProduct = asyncHandler(async (req, res) => {
-  const { name, price, image, brand, category, countInStock, description } = req.body;
-
-  if (!name || !price || !image || !description || !countInStock) {
-    res.status(400);
-    throw new Error("Please fill all the fields");
-  }
-  // ✅ Force image to be an array of objects
-  const formattedImages = Array.isArray(image) ? image : [image];
-
-  const product = {
-    name,
-    price,
-    user: req.user._id,
-    image: formattedImages,
-    brand: brand || "",
-    category: category || "",
-    countInStock,
-    description,
-  };
-
-  const createdProduct = await Product.create(product);
-  res.status(201).json(createdProduct);
-}); */
-
 const createProduct = asyncHandler(async (req, res) => {
-  const { name, price, image, brand, category, countInStock, description, variants } = req.body;
+  const { name, price, image, category, countInStock, description, variants } = req.body;
 
   // ✅ Validation
   if (!name || !price || !image || !description || !countInStock) {
@@ -129,7 +89,6 @@ const createProduct = asyncHandler(async (req, res) => {
     name,
     price,
     image,
-    brand: brand || "",
     category: category || "",
     countInStock,
     description,
@@ -140,60 +99,6 @@ const createProduct = asyncHandler(async (req, res) => {
   const createdProduct = await Product.create(product);
   res.status(201).json(createdProduct);
 });
-
-// @desc    Update a product
-// @route   PUT /api/products/:id
-// @access  Private/admin
-/* const updateProduct = asyncHandler(async (req, res) => {
-  const {
-    name,
-    price,
-    description,
-    image,
-    // imagePublicId,
-    brand,
-    category,
-    countInStock,
-    featured,
-  } = req.body;
-
-  const product = await Product.findById(req.params.id);
-
-  if (!product) {
-    res.status(404);
-    throw new Error("Product not found");
-  }
-
- // Delete old local image if a new one is uploaded
-  if (image && product.image && product.image !== image) {
-    try {
-      // Extract filename from URL
-      const filename = product.image.split("/").pop();
-      const filePath = path.join(__dirname, "..", "uploads", filename);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-    } catch (err) {
-      console.error("Failed to delete old image:", err.message);
-    }
-  } 
-
-  // Update fields
-  product.name = name ?? product.name;
-  product.price = price ?? product.price;
-  product.description = description ?? product.description;
-  product.image = image ?? product.image;
-  // product.imagePublicId = imagePublicId ?? product.imagePublicId; // save new publicId
-  product.brand = brand ?? product.brand;
-  product.category = category ?? product.category;
-  product.countInStock = countInStock ?? product.countInStock;
-  product.featured = featured ?? product.featured; //
-
-  const updatedProduct = await product.save();
-
-  res.status(200).json(updatedProduct);
-});
- */
 
 const updateProduct = asyncHandler(async (req, res) => {
   const {
@@ -234,134 +139,20 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.image = image; // update product images
   }
 
-  /* if (Array.isArray(variants)) {
-    const oldVariants = product.variants || [];
-
-    product.variants = variants.map((v) => {
-      const oldVar = oldVariants.find((ov) => ov._id?.toString() === v._id?.toString());
-      const oldImages = oldVar?.images || [];
-
-      // Remove old variant images if replaced
-      const newImages = v.images || [];
-      for (const oldImg of oldImages) {
-        const existsInNew = newImages.some((img) => img.url === oldImg.url);
-        if (!existsInNew && oldImg.url.includes("/uploads/variants/")) {
-          const filename = oldImg.url.split("/uploads/variants/").pop();
-          const filePath = path.join(__dirname, "..", "uploads/variants", filename);
-          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-        }
-      }
-
-      return {
-        _id: v._id || undefined,
-        color: v.color,
-        images: newImages,
-        sizes:
-          v.sizes?.map((s) => ({
-            size: s.size,
-            stock: s.stock ?? 0,
-            price: s.price ?? 0,
-          })) || [],
-      };
-    });
-  } */
   // Update other fields
   product.name = name ?? product.name;
   product.price = price ?? product.price;
   product.description = description ?? product.description;
-  product.brand = brand ?? product.brand;
   product.category = category ?? product.category;
   product.countInStock = countInStock ?? product.countInStock;
   product.featured = featured ?? product.featured;
   product.hasDiscount = hasDiscount ?? product.hasDiscount;
   product.discountBy = discountBy ?? product.discountBy;
   product.discountedPrice = hasDiscount ? product.price - discountBy : 0;
+
   const updatedProduct = await product.save();
   res.status(200).json(updatedProduct);
 });
-
-// Update product variants only
-/* const updateProductVariants = asyncHandler(async (req, res) => {
-  const { id } = req.params; // productId
-  const { variants } = req.body;
-
-  const product = await Product.findById(id);
-  if (!product) {
-    res.status(404);
-    throw new Error("Product not found");
-  }
-
-  if (!Array.isArray(variants)) {
-    res.status(400);
-    throw new Error("Variants must be an array");
-  }
-
-  const oldVariants = product.variants || [];
-
-  product.variants = variants.map((v) => {
-    const oldVar = oldVariants.find((ov) => ov._id?.toString() === v._id?.toString());
-    const oldImages = oldVar?.images || [];
-
-    // cleanup variant images that were removed
-    const newImages = v.images || [];
-    for (const oldImg of oldImages) {
-      const existsInNew = newImages.some((img) => img.url === oldImg.url);
-      if (!existsInNew && oldImg.url.includes("/uploads/variants/")) {
-        const filename = oldImg.url.split("/uploads/variants/").pop();
-        const filePath = path.join(__dirname, "..", "uploads/variants", filename);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-      }
-    }
-
-    return {
-      _id: v._id || undefined, // keep if exists, or create new
-      color: v.color,
-      images: newImages,
-      sizes:
-        v.sizes?.map((s) => ({
-          size: s.size,
-          stock: s.stock ?? 0,
-          price: s.price ?? 0,
-        })) || [],
-    };
-  });
-
-  const updatedProduct = await product.save();
-  res.status(200).json(updatedProduct);
-}); */
-
-// controllers/productController.js
-/* const updateProductVariants = asyncHandler(async (req, res) => {
-  const { productId, variantId } = req.params;
-  const { color, images, sizes } = req.body;
-
-  const product = await Product.findById(productId);
-  if (!product) {
-    res.status(404);
-    throw new Error("Product not found");
-  }
-
-  // find variant by id
-  const variant = product.variants.id(variantId);
-  if (!variant) {
-    res.status(404);
-    throw new Error("Variant not found");
-  }
-
-  // update fields
-  if (color !== undefined) variant.color = color;
-  if (images !== undefined) variant.images = images;
-  if (sizes !== undefined) {
-    variant.sizes = sizes.map((s) => ({
-      size: s.size,
-      stock: s.stock ?? 0,
-      price: s.price ?? 0,
-    }));
-  }
-
-  await product.save();
-  res.status(200).json(variant);
-}); */
 
 // controllers/productController.js
 const updateProductVariants = asyncHandler(async (req, res) => {
@@ -428,7 +219,7 @@ const deleteProductVariant = asyncHandler(async (req, res) => {
 
 const featuredProducts = asyncHandler(async (req, res) => {
   try {
-    const products = await Product.find({ featured: true }).limit(3);
+    const products = await Product.find({ featured: true }).limit(6);
     res.json(products);
   } catch (error) {
     res.status(500).json({ error: "Server error" });
@@ -473,14 +264,6 @@ const deleteProduct = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
 
   if (product) {
-    /*     if (product.image && product.image.includes("/uploads/")) {
-      // Extract filename from URL
-      const filename = product.image.split("/uploads/").pop();
-      const filePath = path.join(__dirname, "..", "uploads", filename);
-
-      fs.unlink(filePath, (err) => {
-        if (err) console.error("Failed to delete local image:", err);
-      }); */
     if (product.image && Array.isArray(product.image)) {
       for (const img of product.image) {
         // Delete local file if stored in /uploads/
@@ -491,9 +274,6 @@ const deleteProduct = asyncHandler(async (req, res) => {
             if (err) console.error("Failed to delete local image:", err);
           });
         }
-
-        // TODO: If using Cloudinary, you can also delete via img.publicId
-        // await cloudinary.uploader.destroy(img.publicId);
       }
     }
 
@@ -503,25 +283,6 @@ const deleteProduct = asyncHandler(async (req, res) => {
     res.status(404);
     throw new Error("Product not found");
   }
-  /*   const product = await Product.findById(req.params.id);
-
-  if (product) {
-    // Remove image file if it exists
-    if (product.image) {
-      const imagePath = path.join(__dirname, "../uploads", path.basename(product.image));
-      fs.unlink(imagePath, (err) => {
-        if (err) {
-          console.error("Failed to delete image:", err);
-        }
-      });
-    }
-
-    await product.deleteOne();
-    res.json({ message: "Product removed" });
-  } else {
-    res.status(404);
-    throw new Error("Product not found");
-  } */
 });
 // @desc    Create a new review
 // @route   POST /api/products/:id/reviews
@@ -567,31 +328,6 @@ const getTopRatedProducts = asyncHandler(async (req, res) => {
   res.status(200).json(products);
 });
 
-/* const updateStock = asyncHandler(async (req, res) => {
-  const { orderItems } = req.body;
-
-  try {
-    // Loop through each product in the order
-    for (const item of orderItems) {
-      const product = await Product.findById(item._id);
-
-      if (product) {
-        // Update stock quantity
-        product.countInStock -= item.qty;
-        if (product.countInStock < 0) {
-          product.countInStock = 0; // Prevent negative stock
-        }
-        await product.save();
-      } else {
-        return res.status(404).json({ message: `Product with ID ${item._id} not found` });
-      }
-    }
-
-    res.status(200).json({ message: "Stock updated successfully" });
-  } catch (error) {
-    res.status(500).json({ message: "Error updating stock", error: error.message });
-  }
-}); */
 const updateStock = asyncHandler(async (req, res) => {
   const { orderItems } = req.body;
 
