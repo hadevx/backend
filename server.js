@@ -53,7 +53,6 @@ app.use(express.urlencoded({ extended: true }));
 // Cookie parser middleware
 app.use(cookieParser());
 
-// Routes http://localhost:4001
 app.use("/api/products", productRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/orders", orderRoutes);
@@ -62,7 +61,6 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api/category", categoryRoutes);
 app.use("/api/payment", paymentRoutes);
 
-// app.use("/uploads", express.static(path.join(__dirname, "./uploads")));
 app.use(
   "/uploads",
   express.static("/app/uploads", {
