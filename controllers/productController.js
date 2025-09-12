@@ -105,8 +105,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     name,
     price,
     description,
-    image, // expect an array of { url, publicId } or just URLs
-    brand,
+    image,
     category,
     countInStock,
     featured,
@@ -146,9 +145,12 @@ const updateProduct = asyncHandler(async (req, res) => {
   product.category = category ?? product.category;
   product.countInStock = countInStock ?? product.countInStock;
   product.featured = featured ?? product.featured;
+
   product.hasDiscount = hasDiscount ?? product.hasDiscount;
   product.discountBy = discountBy ?? product.discountBy;
-  product.discountedPrice = hasDiscount ? product.price - discountBy : 0;
+  product.discountedPrice = hasDiscount
+    ? product.price - product.price * discountBy
+    : product.price;
 
   const updatedProduct = await product.save();
   res.status(200).json(updatedProduct);
