@@ -366,9 +366,9 @@ const forgetPassword = asyncHandler(async (req, res) => {
   user.resetPasswordExpire = Date.now() + 15 * 60 * 1000; // 15 mins
   await user.save();
 
-  const resetURL = `https://backend.webschema.online/admin/reset-password/${resetToken}`;
+  const resetURL = `${process.env.FRONTEND_URL}/admin/reset-password/${resetToken}`;
   await sendRestPasswordEmail(
-    "hn98q8@hotmail.com",
+    process.env.ADMIN_EMAIL,
     "Password Reset Request",
     `
   Hello,
