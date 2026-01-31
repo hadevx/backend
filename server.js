@@ -41,7 +41,7 @@ app.use(
       "https://storefront.webschema.online",
       "https://admin.webschema.online",
       "https://storefront2.webschema.online",
-      "https://9eeda.webschema.online/",
+      "https://9eeda.webschema.online",
     ],
     credentials: true,
   }),
