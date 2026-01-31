@@ -197,7 +197,7 @@ const checkStock = asyncHandler(async (req, res) => {
   }
 }); */
 const getOrders = asyncHandler(async (req, res) => {
-  const pageSize = 5;
+  const pageSize = 50;
   const page = Number(req.query.pageNumber) || 1;
 
   try {

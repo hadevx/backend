@@ -15,7 +15,7 @@ const getAllProducts = asyncHandler(async (req, res) => {
 });
 
 const getProducts = asyncHandler(async (req, res) => {
-  const pageSize = 5;
+  const pageSize = 50;
   const page = Number(req.query.pageNumber) || 1;
 
   // Search filter
@@ -52,7 +52,7 @@ const fetchProductsByIds = asyncHandler(async (req, res) => {
 });
 
 const getLatestProducts = asyncHandler(async (req, res) => {
-  const products = await Product.find({}).sort({ createdAt: -1 }).limit(6);
+  const products = await Product.find({}).sort({ createdAt: -1 }).limit(4);
 
   if (!products || products.length === 0) {
     res.status(404);
@@ -295,7 +295,7 @@ const createProductReview = asyncHandler(async (req, res) => {
 
   if (product) {
     const alreadyReviewed = product.reviews.find(
-      (review) => review.user.toString() === req.user._id.toString()
+      (review) => review.user.toString() === req.user._id.toString(),
     );
     if (alreadyReviewed) {
       res.status(400);
@@ -371,7 +371,7 @@ const updateStock = asyncHandler(async (req, res) => {
         product.countInStock = product.variants.reduce(
           (acc, v) =>
             acc + (v.sizes?.length ? v.sizes.reduce((sum, s) => sum + s.stock, 0) : v.stock || 0),
-          0
+          0,
         );
       } else {
         // No variants → update product stock directly
@@ -459,7 +459,7 @@ const deleteDiscount = asyncHandler(async (req, res) => {
     {
       $set: { hasDiscount: false },
       $unset: { discountedPrice: "" }, // remove discountedPrice field
-    }
+    },
   );
 
   res.json({ message: "Discount deleted and products updated" });

@@ -26,6 +26,14 @@ const userSchema = new Schema(
       required: true,
       default: false,
     },
+    isBlocked: {
+      type: Boolean,
+      default: false,
+    },
+    isVIP: {
+      type: Boolean,
+      default: false,
+    },
     resetPasswordToken: String,
     resetPasswordExpire: Date,
   },

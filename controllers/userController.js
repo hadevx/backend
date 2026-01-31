@@ -225,7 +225,7 @@ const updateAddress = asyncHandler(async (req, res) => {
   res.status(200).json(totalUsers);
 }); */
 const getUsers = asyncHandler(async (req, res) => {
-  const pageSize = 5; // number of users per page
+  const pageSize = 50; // number of users per page
   const page = Number(req.query.pageNumber) || 1;
 
   // Optional search by name or email
@@ -287,6 +287,26 @@ const deleteUser = asyncHandler(async (req, res) => {
 
   await User.findByIdAndDelete({ _id: user._id });
   res.status(200).json({ message: "User deleted successfully" });
+});
+
+const updateToBlocked = asyncHandler(async (req, res) => {
+  const { isBlocked } = req.body; // take the value from request body
+
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  user.isBlocked = isBlocked || user.isBlocked;
+
+  await user.save();
+
+  res.status(200).json({
+    message: `User ${isBlocked ? "blocked" : "unblocked"} successfully`,
+    user,
+  });
 });
 
 // @desc    Update user
@@ -383,7 +403,7 @@ const forgetPassword = asyncHandler(async (req, res) => {
 
   Best regards,  
   WEBSCHEMA
-  `
+  `,
   );
 
   res.json({ message: "Reset link sent to email" });
