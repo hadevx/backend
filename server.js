@@ -41,9 +41,10 @@ app.use(
       "https://storefront.webschema.online",
       "https://admin.webschema.online",
       "https://storefront2.webschema.online",
+      "https://9eeda.webschema.online/",
     ],
     credentials: true,
-  })
+  }),
 );
 
 // Body parser middleware
@@ -69,7 +70,7 @@ app.use(
     setHeaders: (res, path) => {
       res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
     },
-  })
+  }),
 );
 
 app.get("/", (req, res) => {
