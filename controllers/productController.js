@@ -111,6 +111,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     featured,
     hasDiscount,
     discountBy,
+    variants, // ✅ add this
   } = req.body;
 
   const product = await Product.findById(req.params.id);
@@ -120,7 +121,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     throw new Error("Product not found");
   }
 
-  // Delete old images that are no longer in the new images array
+  // ✅ Delete old images that are no longer in the new images array
   if (image && Array.isArray(image)) {
     const oldImages = product.image || [];
 
@@ -138,18 +139,39 @@ const updateProduct = asyncHandler(async (req, res) => {
     product.image = image; // update product images
   }
 
-  // Update other fields
+  // ✅ Update basic fields
   product.name = name ?? product.name;
   product.price = price ?? product.price;
   product.description = description ?? product.description;
   product.category = category ?? product.category;
-  product.countInStock = countInStock ?? product.countInStock;
   product.featured = featured ?? product.featured;
 
+  // ✅ Update variants (IMPORTANT)
+  if (variants && Array.isArray(variants)) {
+    product.variants = variants;
+
+    // ✅ Recommended: sync stock from variants (sum of all sizes stock)
+    const totalStock = variants.reduce((acc, v) => {
+      const sizes = Array.isArray(v?.sizes) ? v.sizes : [];
+      const variantStock = sizes.reduce((sum, s) => sum + Number(s?.stock || 0), 0);
+      return acc + variantStock;
+    }, 0);
+
+    product.countInStock = totalStock;
+  } else {
+    // If no variants sent, keep normal stock update
+    product.countInStock = countInStock ?? product.countInStock;
+  }
+
+  // ✅ Discount logic
   product.hasDiscount = hasDiscount ?? product.hasDiscount;
   product.discountBy = discountBy ?? product.discountBy;
-  product.discountedPrice = hasDiscount
-    ? product.price - product.price * discountBy
+
+  const finalHasDiscount = product.hasDiscount === true;
+  const finalDiscountBy = Number(product.discountBy || 0);
+
+  product.discountedPrice = finalHasDiscount
+    ? product.price - product.price * finalDiscountBy
     : product.price;
 
   const updatedProduct = await product.save();
