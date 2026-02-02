@@ -2,7 +2,7 @@ const jwt = require("jsonwebtoken");
 const asyncHandler = require("./asyncHandler");
 const User = require("../models/userModel");
 
-/* const protectUser = asyncHandler(async (req, res, next) => {
+const protectUser = asyncHandler(async (req, res, next) => {
   const token = req.cookies.jwt;
   if (!token) {
     res.status(401);
@@ -30,61 +30,6 @@ const protectAdmin = (req, res, next) => {
     res.status(403);
     throw new Error("Admin access only");
   }
-}; */
-
-const protectUser = asyncHandler(async (req, res, next) => {
-  const token = req.cookies.user_jwt;
-
-  if (!token) {
-    res.status(401);
-    throw new Error("Not authorized, no token");
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.userId).select("-password");
-
-    if (!req.user) {
-      res.status(401);
-      throw new Error("Not authorized, user not found");
-    }
-
-    req.role = decoded.role;
-    next();
-  } catch (error) {
-    res.status(401);
-    throw new Error("Not authorized, token failed");
-  }
-});
-
-const protectAdmin = asyncHandler(async (req, res, next) => {
-  const token = req.cookies.admin_jwt;
-
-  if (!token) {
-    res.status(401);
-    throw new Error("Not authorized, no token");
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    if (decoded.role !== "admin") {
-      res.status(403);
-      throw new Error("Admin access only");
-    }
-
-    req.user = await User.findById(decoded.userId).select("-password");
-    if (!req.user) {
-      res.status(401);
-      throw new Error("Not authorized, user not found");
-    }
-
-    req.role = decoded.role;
-    next();
-  } catch (error) {
-    res.status(401);
-    throw new Error("Not authorized, token failed");
-  }
-});
+};
 
 module.exports = { protectUser, protectAdmin };

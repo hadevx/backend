@@ -40,13 +40,10 @@ router.post("/logout", logoutUser);
 // Admin routes
 router.post("/admin", loginLimiter, loginValidation, loginAdmin);
 router.get("/governorates", getGovernorates);
-// router.get("/", protectUser, protectAdmin, getUsers);
-router.get("/", protectAdmin, getUsers);
+router.get("/", protectUser, protectAdmin, getUsers);
 router.put("/:id", protectUser, updateUser);
-// router.delete("/:id", protectUser, protectAdmin, deleteUser);
-router.delete("/:id", protectAdmin, deleteUser);
-// router.get("/:id", protectUser, protectAdmin, getUserById);
-router.get("/:id", protectAdmin, getUserById);
+router.delete("/:id", protectUser, protectAdmin, deleteUser);
+router.get("/:id", protectUser, protectAdmin, getUserById);
 
 router.post("/admin/logout", logoutUser);
 

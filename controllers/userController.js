@@ -30,9 +30,7 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new Error("Invalid email or password");
   }
 
-  // generateToken(res, user);
-  // storefront login
-  generateToken(res, user, "user_jwt");
+  generateToken(res, user);
   res.status(200).json({
     _id: user._id,
     name: user.name,
@@ -70,9 +68,8 @@ const loginAdmin = asyncHandler(async (req, res) => {
     throw new Error("Unauthorized");
   }
 
-  // generateToken(res, user);
-  // admin login
-  generateToken(res, user, "admin_jwt");
+  generateToken(res, user);
+
   res.status(200).json({
     _id: user._id,
     name: user.name,
