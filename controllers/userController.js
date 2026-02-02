@@ -472,7 +472,7 @@ module.exports = {
   deleteUser,
   getUserById,
   updateUser,
-  getUsers,
+  // getUsers,
   getUserById,
   deleteUser,
   updateUser,
