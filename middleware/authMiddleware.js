@@ -32,10 +32,6 @@ const protectAdmin = (req, res, next) => {
   }
 }; */
 
-const jwt = require("jsonwebtoken");
-const asyncHandler = require("./asyncHandler");
-const User = require("../models/userModel");
-
 const protectUser = asyncHandler(async (req, res, next) => {
   const token = req.cookies.user_jwt;
 
