@@ -567,7 +567,9 @@ module.exports = {
   deleteDiscount,
   getAllProducts,
   fetchProductsByIds,
+
   featuredProducts,
+
   updateProductVariants,
   deleteProductVariant,
 };
