@@ -56,48 +56,39 @@ const sendOrderEmail = async (orderDetails) => {
 
       <hr />
 
-    <h3>Order Items 🛒</h3>
-<table style="width: 100%; border-collapse: collapse; text-align: left;">
-  <thead>
-    <tr style="background-color: #f4f4f4;">
-      <th style="border: 1px solid #ccc; padding: 8px;">Image</th>
-      <th style="border: 1px solid #ccc; padding: 8px;">Product</th>
-      <th style="border: 1px solid #ccc; padding: 8px;">Qty</th>
-      <th style="border: 1px solid #ccc; padding: 8px;">Price</th>
-      <th style="border: 1px solid #ccc; padding: 8px;">Total</th>
-    </tr>
-  </thead>
-  <tbody>
-    ${orderDetails.orderItems
-      .map(
-        (item) => `
-      <tr>
-        <td style="border: 1px solid #ccc; padding: 8px;">
-          <img
-            src="${item.image}"
-            alt="${item.name}"
-            style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px;"
-          />
-        </td>
-        <td style="border: 1px solid #ccc; padding: 8px;">
-          ${item.name}
-        </td>
-        <td style="border: 1px solid #ccc; padding: 8px;">
-          ${item.qty}
-        </td>
-        <td style="border: 1px solid #ccc; padding: 8px;">
-          ${item.price.toFixed(3)} KD
-        </td>
-        <td style="border: 1px solid #ccc; padding: 8px;">
-          ${(item.price * item.qty).toFixed(3)} KD
-        </td>
-      </tr>
-    `,
-      )
-      .join("")}
-  </tbody>
-</table>
-
+      <h3>Order Items 🛒</h3>
+      <table style="width: 100%; border-collapse: collapse; text-align: left;">
+        <thead>
+          <tr style="background-color: #f4f4f4;">
+            <th style="border: 1px solid #ccc; padding: 8px;">Product</th>
+            <th style="border: 1px solid #ccc; padding: 8px;">Qty</th>
+            <th style="border: 1px solid #ccc; padding: 8px;">Price</th>
+            <th style="border: 1px solid #ccc; padding: 8px;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${orderDetails.orderItems
+            .map(
+              (item) => `
+            <tr>
+              <td style="border: 1px solid #ccc; padding: 8px;">
+                ${item.name}
+              </td>
+              <td style="border: 1px solid #ccc; padding: 8px;">
+                ${item.qty}
+              </td>
+              <td style="border: 1px solid #ccc; padding: 8px;">
+                ${item.price.toFixed(3)} KD
+              </td>
+              <td style="border: 1px solid #ccc; padding: 8px;">
+                ${(item.price * item.qty).toFixed(3)} KD
+              </td>
+            </tr>
+          `,
+            )
+            .join("")}
+        </tbody>
+      </table>
 
       <br />
 

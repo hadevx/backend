@@ -243,7 +243,7 @@ const deleteProductVariant = asyncHandler(async (req, res) => {
 
 const featuredProducts = asyncHandler(async (req, res) => {
   try {
-    const products = await Product.find({ featured: true }).limit(6);
+    const products = await Product.find({ featured: true }).limit(4);
     res.json(products);
   } catch (error) {
     res.status(500).json({ error: "Server error" });
