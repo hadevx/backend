@@ -10,7 +10,7 @@ const crypto = require("crypto");
 // @route   POST /api/users/login
 // @access  public
 const loginUser = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, deviceInfo } = req.body;
 
   if (!email || !password) {
     res.status(400);
@@ -23,6 +23,7 @@ const loginUser = asyncHandler(async (req, res) => {
     res.status(401);
     throw new Error("Invalid email or password");
   }
+
   // Check if password matches
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
@@ -30,13 +31,38 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new Error("Invalid email or password");
   }
 
-  generateToken(res, user);
+  // ✅ SAVE LAST LOGIN INFO
+  user.lastLoginAt = new Date();
+
+  // ✅ SAVE DEVICE INFO (frontend OR fallback)
+  user.deviceInfo = {
+    platform: deviceInfo?.platform || req.headers["sec-ch-ua-platform"] || "Unknown",
+
+    userAgent: deviceInfo?.userAgent || req.headers["user-agent"] || "Unknown",
+
+    language: deviceInfo?.language || req.headers["accept-language"] || "Unknown",
+
+    screen: deviceInfo?.screen || "Unknown",
+
+    timezone: deviceInfo?.timezone || "Unknown",
+
+    ip: req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress || "Unknown",
+  };
+
+  await user.save();
+
+  // Keep your token logic
+  // generateToken(res, user, );
+  generateToken(res, user, "user_jwt");
+
   res.status(200).json({
     _id: user._id,
     name: user.name,
     email: user.email,
     phone: user.phone,
     isAdmin: user.isAdmin,
+    lastLoginAt: user.lastLoginAt,
+    deviceInfo: user.deviceInfo,
   });
 });
 
@@ -68,7 +94,8 @@ const loginAdmin = asyncHandler(async (req, res) => {
     throw new Error("Unauthorized");
   }
 
-  generateToken(res, user);
+  // generateToken(res, user);
+  generateToken(res, user, "admin_jwt");
 
   res.status(200).json({
     _id: user._id,
@@ -83,11 +110,16 @@ const loginAdmin = asyncHandler(async (req, res) => {
 // @route   POST /api/users
 // @access  public
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password, confirmPassword, phone } = req.body;
+  const { name, email, password, confirmPassword, phone, deviceInfo } = req.body;
 
   if (!name || !email || !password || !confirmPassword || !phone) {
     res.status(400);
     throw new Error("Invalid user data");
+  }
+
+  if (password !== confirmPassword) {
+    res.status(400);
+    throw new Error("Passwords do not match");
   }
 
   const userExist = await User.findOne({ email });
@@ -99,14 +131,33 @@ const registerUser = asyncHandler(async (req, res) => {
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
 
-  const user = await User.create({ name, email, password: hashedPassword, phone });
+  // ✅ Build device info (frontend OR fallback)
+  const devicePayload = {
+    platform: deviceInfo?.platform || req.headers["sec-ch-ua-platform"] || "Unknown",
+    userAgent: deviceInfo?.userAgent || req.headers["user-agent"] || "Unknown",
+    language: deviceInfo?.language || req.headers["accept-language"] || "Unknown",
+    screen: deviceInfo?.screen || "Unknown",
+    timezone: deviceInfo?.timezone || "Unknown",
+    ip: req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress || "Unknown",
+  };
+
+  const user = await User.create({
+    name,
+    email,
+    password: hashedPassword,
+    phone,
+
+    // ✅ Save on register too
+    lastLoginAt: new Date(),
+    deviceInfo: devicePayload,
+  });
 
   if (!user) {
     res.status(400);
     throw new Error("User creation failed");
   }
 
-  generateToken(res, user);
+  generateToken(res, user, "user_jwt");
 
   res.status(201).json({
     _id: user._id,
@@ -114,6 +165,10 @@ const registerUser = asyncHandler(async (req, res) => {
     email: user.email,
     phone: user.phone,
     isAdmin: user.isAdmin,
+
+    // ✅ Return them (optional but consistent)
+    lastLoginAt: user.lastLoginAt,
+    deviceInfo: user.deviceInfo,
   });
 });
 
@@ -121,7 +176,7 @@ const registerUser = asyncHandler(async (req, res) => {
 // @route   POST /api/users/logout
 // @access  Private
 const logoutUser = asyncHandler(async (req, res) => {
-  res.cookie("jwt", "", {
+  res.cookie("user_jwt", "", {
     httpOnly: true,
     secure: process.env.NODE_ENV !== "development",
     sameSite: "strict",
@@ -131,7 +186,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 });
 
 const logoutAdmin = asyncHandler(async (req, res) => {
-  res.cookie("jwt", "", {
+  res.cookie("admin_jwt", "", {
     httpOnly: true,
     secure: process.env.NODE_ENV !== "development",
     sameSite: "strict",
@@ -154,6 +209,8 @@ const getUserProfile = asyncHandler(async (req, res) => {
     _id: user._id,
     name: user.name,
     email: user.email,
+    isBlocked: user.isBlocked,
+    isVIP: user.isVIP,
     isAdmin: user.isAdmin,
   });
 });
@@ -211,19 +268,6 @@ const updateAddress = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Get users
-// @route   GET /api/users
-// @access  Private/admin
-/* const getUsers = asyncHandler(async (req, res) => {
-  const totalUsers = await User.find({}).select("-password");
-
-  if (!totalUsers || totalUsers.length === 0) {
-    res.status(404);
-    throw new Error("No users found");
-  }
-
-  res.status(200).json(totalUsers);
-}); */
 const getUsers = asyncHandler(async (req, res) => {
   const pageSize = 50; // number of users per page
   const page = Number(req.query.pageNumber) || 1;
@@ -284,29 +328,11 @@ const deleteUser = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("Cannot delete admin user");
   }
+  // ✅ delete the single address linked to this user
+  await Address.deleteOne({ user: user._id }); // or { userId: user._id }
 
   await User.findByIdAndDelete({ _id: user._id });
   res.status(200).json({ message: "User deleted successfully" });
-});
-
-const updateToBlocked = asyncHandler(async (req, res) => {
-  const { isBlocked } = req.body; // take the value from request body
-
-  const user = await User.findById(req.params.id);
-
-  if (!user) {
-    res.status(404);
-    throw new Error("User not found");
-  }
-
-  user.isBlocked = isBlocked || user.isBlocked;
-
-  await user.save();
-
-  res.status(200).json({
-    message: `User ${isBlocked ? "blocked" : "unblocked"} successfully`,
-    user,
-  });
 });
 
 // @desc    Update user
@@ -432,6 +458,30 @@ const resetPassword = asyncHandler(async (req, res) => {
   }
 });
 
+const toggleBlockUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+  user.isBlocked = !user.isBlocked;
+  await user.save();
+  res
+    .status(200)
+    .json({ message: `User ${user.isBlocked ? "blocked" : "unblocked"} successfully` });
+});
+const toggleVIPUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+  user.isVIP = !user.isVIP;
+  await user.save();
+  res.status(200).json({ message: `User ${user.isVIP ? "VIP" : "regular"} successfully` });
+});
 // @desc    Get all governorates with user count
 // @route   GET /api/users/governorates
 // @access  Private/Admin
@@ -472,10 +522,7 @@ module.exports = {
   deleteUser,
   getUserById,
   updateUser,
-  // getUsers,
-  getUserById,
   deleteUser,
-  updateUser,
   createAddress,
   getAddress,
   updateAddress,
@@ -484,4 +531,6 @@ module.exports = {
   resetPassword,
   logoutAdmin,
   getGovernorates,
+  toggleBlockUser,
+  toggleVIPUser,
 };

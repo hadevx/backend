@@ -1,72 +1,70 @@
 const express = require("express");
 const router = express.Router();
+
 const {
   getProducts,
+  getAllProducts,
   getProductById,
   createProduct,
   updateProduct,
   deleteProduct,
   getProductsByCategory,
-  updateStock,
-  createShippingPrice,
-  getDeliveryStatus,
-  updateDiscounts,
-  getDiscountStatus,
   getLatestProducts,
-  createCategory,
-  getCategories,
-  deleteCategory,
-  createDiscount,
-  deleteDiscount,
-  getAllProducts,
+  getFeaturedProducts,
+  updateStock,
   fetchProductsByIds,
-  featuredProducts,
+  getSaleProducts,
   updateProductVariants,
   deleteProductVariant,
+  getRelatedProducts,
 } = require("../controllers/productController");
-const { protectUser, protectAdmin } = require("../middleware/authMiddleware");
 
-// /api/products
+const { protectAdmin, requireAdminRole } = require("../middleware/authMiddleware");
 
-/* PRODUCTS */
+/**
+ * BASE PATH: /api/products
+ * ======================
+ * STATIC ROUTES FIRST
+ * PARAM ROUTES (/:id) LAST
+ */
+
+/* =======================
+   PRODUCTS (STATIC)
+======================= */
 router.get("/latest", getLatestProducts);
-router.get("/featured", featuredProducts);
-router.put("/delivery", protectUser, protectAdmin, createShippingPrice);
-router.get("/", getProducts);
+router.get("/:id/related", getRelatedProducts);
+router.get("/sale", getSaleProducts);
+router.get("/featured", getFeaturedProducts);
 router.get("/all", getAllProducts);
-router.post("/", protectUser, protectAdmin, createProduct);
+router.get("/", getProducts);
+
+/* =======================
+   PRODUCTS (CREATE)
+======================= */
+router.post("/", protectAdmin, requireAdminRole, createProduct);
 router.post("/fetch-by-ids", fetchProductsByIds);
-/* CATEGORY */
-router.post("/create-category", protectUser, protectAdmin, createCategory);
-router.delete("/category", protectUser, protectAdmin, deleteCategory);
-router.get("/category", getCategories);
 
-/* DISCOUNTS */
-router.post("/discount", protectUser, protectAdmin, createDiscount);
-router.put("/discount", protectUser, protectAdmin, updateDiscounts);
-router.get("/discount", getDiscountStatus);
-router.delete("/discount/:id", protectUser, protectAdmin, deleteDiscount);
+/* =======================
+   PRODUCT STOCK
+======================= */
+router.post("/update-stock", protectAdmin, requireAdminRole, updateStock);
 
-router.get("/delivery", getDeliveryStatus);
-router.post("/update-stock", updateStock);
+/* =======================
+   PRODUCT VARIANTS
+======================= */
+router.put("/variant/:id", protectAdmin, requireAdminRole, updateProductVariants);
+router.delete("/variant/:id", protectAdmin, requireAdminRole, deleteProductVariant);
+
+/* =======================
+   PRODUCTS BY CATEGORY
+======================= */
 router.get("/category/:id", getProductsByCategory);
 
-/* router.post("/delete-image", async (req, res) => {
-  try {
-    const { publicId } = req.body;
-    if (!publicId) return res.status(400).json({ message: "Public ID required" });
-
-    await cloudinary.uploader.destroy(publicId);
-    res.json({ message: "Old image deleted successfully" });
-  } catch (err) {
-    res.status(500).json({ message: "Failed to delete image", error: err.message });
-  }
-}); */
+/* =======================
+   SINGLE PRODUCT (LAST)
+======================= */
 router.get("/:id", getProductById);
-router.put("/:id", protectUser, protectAdmin, updateProduct);
-router.put("/variant/:id", protectUser, protectAdmin, updateProductVariants);
-router.delete("/variant/:id", protectUser, protectAdmin, deleteProductVariant);
-router.delete("/:id", protectUser, protectAdmin, deleteProduct);
-router.get("/product/:id", getProductById);
+router.put("/:id", protectAdmin, requireAdminRole, updateProduct);
+router.delete("/:id", protectAdmin, requireAdminRole, deleteProduct);
 
 module.exports = router;

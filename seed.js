@@ -64,9 +64,9 @@ const seedData = async () => {
 const seedCustom = async () => {
   try {
     await User.create(users[0]);
-    await Delivery.create({ timeToDeliver: "today", shippingFee: 0, minDeliveryCost: 0 });
+    // await Delivery.create({ timeToDeliver: "today", shippingFee: 0, minDeliveryCost: 0 });
 
-    await Store.create({ status: "active" });
+    // await Store.create({ status: "active" });
 
     console.log("Data seeded");
     process.exit();

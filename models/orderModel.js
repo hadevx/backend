@@ -8,23 +8,28 @@ const orderSchema = new Schema(
       required: true,
       ref: "User",
     },
+
     orderItems: [
       {
-        name: { type: String, required: true }, // product name at order time
+        name: { type: String, required: true },
         qty: { type: Number, required: true },
+
         image: [
           {
             url: { type: String, required: true },
             publicId: String,
           },
         ],
-        price: { type: Number, required: true }, // price at order time
+
+        // ✅ IMPORTANT: this must be the FINAL unit price saved at order time (after sale + coupon)
+        price: { type: Number, required: true },
+
         product: { type: mongoose.Schema.Types.ObjectId, required: true, ref: "Product" },
 
-        // 🔹 Variant details
-        variantId: { type: mongoose.Schema.Types.ObjectId }, // reference to Product.variants._id
+        variantId: { type: mongoose.Schema.Types.ObjectId },
         variantColor: { type: String },
-        variantSize: { type: String }, // which size was chosen
+        variantSize: { type: String },
+
         variantImage: [
           {
             url: { type: String, required: true },
@@ -33,6 +38,7 @@ const orderSchema = new Schema(
         ],
       },
     ],
+
     shippingAddress: {
       governorate: { type: String, required: true },
       city: { type: String, required: true },
@@ -40,55 +46,39 @@ const orderSchema = new Schema(
       street: { type: String, required: true },
       house: { type: String, required: true },
     },
-    paymentMethod: {
-      type: String,
-      required: true,
-    },
+
+    paymentMethod: { type: String, required: true },
+
     paymentResult: {
       id: { type: String },
       status: { type: String },
       update_time: { type: String },
       email_address: { type: String },
     },
-    itemsPrice: {
-      type: Number,
-      required: true,
-      default: 0.0,
+
+    // ✅ coupon info stored on the order
+    coupon: {
+      code: { type: String },
+      discountBy: { type: Number }, // e.g. 0.1
+      categories: [{ type: mongoose.Schema.Types.ObjectId, ref: "Category" }],
     },
-    shippingPrice: {
-      type: Number,
-      required: true,
-      default: 0.0,
-    },
-    totalPrice: {
-      type: Number,
-      required: true,
-      default: 0.0,
-    },
-    isPaid: {
-      type: Boolean,
-      required: true,
-      default: false,
-    },
-    paidAt: {
-      type: Date,
-    },
-    isDelivered: {
-      type: Boolean,
-      required: true,
-      default: false,
-    },
-    isCanceled: {
-      type: Boolean,
-      default: false,
-    },
-    deliveredAt: {
-      type: Date,
-    },
+
+    // ✅ total discount amount applied to items (KWD)
+    discountAmount: { type: Number, default: 0 },
+
+    itemsPrice: { type: Number, required: true, default: 0.0 },
+    shippingPrice: { type: Number, required: true, default: 0.0 },
+    totalPrice: { type: Number, required: true, default: 0.0 },
+
+    isPaid: { type: Boolean, required: true, default: false },
+    paidAt: { type: Date },
+
+    isDelivered: { type: Boolean, required: true, default: false },
+    isCanceled: { type: Boolean, default: false },
+    deliveredAt: { type: Date },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const Order = mongoose.model("Order", orderSchema);
-
 module.exports = Order;

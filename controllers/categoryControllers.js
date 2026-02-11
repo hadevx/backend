@@ -72,7 +72,7 @@ const updateCategory = asyncHandler(async (req, res) => {
   }
 });
 const getCategories = async (req, res) => {
-  const pageSize = 5; // categories per page
+  const pageSize = 10; // categories per page
   const page = Number(req.query.pageNumber) || 1;
 
   // Optional search

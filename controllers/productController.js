@@ -6,6 +6,93 @@ const Category = require("../models/categoryModel");
 const fs = require("fs");
 const path = require("path");
 
+/**
+ * Helpers: normalize color/size (capitalize)
+ * - color: "black" -> "Black"
+ * - size:  "xl" -> "XL", "medium" -> "Medium"
+ */
+const capitalizeWord = (val) => {
+  if (val === null || val === undefined) return val;
+  const s = String(val).trim();
+  if (!s) return s;
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+};
+
+const normalizeColor = (color) => capitalizeWord(color);
+
+// Keep common apparel sizes uppercased; otherwise capitalize word
+const normalizeSize = (size) => {
+  if (size === null || size === undefined) return size;
+  const s = String(size).trim();
+  if (!s) return s;
+
+  // Common tokens that should remain uppercase
+  const upperTokens = new Set([
+    "XXS",
+    "XS",
+    "S",
+    "M",
+    "L",
+    "XL",
+    "XXL",
+    "XXXL",
+    "XXXL",
+    "XXXXL",
+    "5XL",
+    "6XL",
+    "7XL",
+    "8XL",
+    "9XL",
+    "10XL",
+    "OS",
+    "ONE SIZE",
+    "ONESIZE",
+    "UK",
+    "US",
+    "EU",
+  ]);
+
+  const up = s.toUpperCase();
+  if (upperTokens.has(up)) return up;
+
+  // Numeric sizes like "42" or "42.5" -> keep as-is
+  if (/^\d+(\.\d+)?$/.test(s)) return s;
+
+  // Multi-word (e.g., "one size") -> "One Size"
+  if (s.includes(" ")) {
+    return s
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((w) => capitalizeWord(w))
+      .join(" ");
+  }
+
+  // Default: "medium" -> "Medium"
+  return capitalizeWord(s);
+};
+
+const normalizeVariants = (variants) => {
+  if (!Array.isArray(variants)) return variants;
+
+  return variants.map((v) => {
+    const out = { ...(v || {}) };
+
+    if (out.color !== undefined) out.color = normalizeColor(out.color);
+
+    if (Array.isArray(out.sizes)) {
+      out.sizes = out.sizes.map((s) => ({
+        ...(s || {}),
+        size: normalizeSize(s?.size),
+        stock: s?.stock,
+        price: s?.price ?? 0,
+      }));
+    }
+
+    // images untouched
+    return out;
+  });
+};
+
 // @desc    Fetch all products
 // @route   GET /api/products
 // @access  Public
@@ -14,18 +101,76 @@ const getAllProducts = asyncHandler(async (req, res) => {
   res.json(products);
 });
 
+const escapeRegex = (s = "") => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 const getProducts = asyncHandler(async (req, res) => {
-  const pageSize = 30;
+  const pageSize = Number(req.query.limit) || 30;
   const page = Number(req.query.pageNumber) || 1;
 
-  // Search filter
-  const keyword = req.query.keyword ? { name: { $regex: req.query.keyword, $options: "i" } } : {};
+  const keyword = (req.query.keyword || "").trim();
+  const colorParam = (req.query.color || "").trim(); // "red,black"
+  const categoryParam = (req.query.category || "").trim(); // category id
+  const inStock = req.query.inStock === "true";
 
-  // Count total products matching search
-  const count = await Product.countDocuments({ ...keyword });
+  // ✅ featured filter (?featured=true)
+  const featured = req.query.featured === "true";
 
-  // Paginate + sort newest first
-  const products = await Product.find({ ...keyword })
+  const minPrice =
+    req.query.minPrice !== undefined && req.query.minPrice !== ""
+      ? Number(req.query.minPrice)
+      : null;
+
+  const maxPrice =
+    req.query.maxPrice !== undefined && req.query.maxPrice !== ""
+      ? Number(req.query.maxPrice)
+      : null;
+
+  const filter = {};
+
+  // Search (safe regex)
+  if (keyword) {
+    filter.name = { $regex: escapeRegex(keyword), $options: "i" };
+  }
+
+  // Category
+  if (categoryParam) {
+    filter.category = categoryParam;
+  }
+
+  // ✅ Featured
+  if (featured) {
+    filter.featured = true;
+  }
+
+  // Price
+  if (minPrice !== null || maxPrice !== null) {
+    filter.price = {};
+    if (minPrice !== null && !Number.isNaN(minPrice)) filter.price.$gte = minPrice;
+    if (maxPrice !== null && !Number.isNaN(maxPrice)) filter.price.$lte = maxPrice;
+
+    if (Object.keys(filter.price).length === 0) delete filter.price;
+  }
+
+  // In stock
+  if (inStock) {
+    filter.countInStock = { $gt: 0 };
+  }
+
+  // Color filter (variants.color)
+  if (colorParam) {
+    const colors = colorParam
+      .split(",")
+      .map((c) => c.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (colors.length) {
+      filter["variants.color"] = { $in: colors };
+    }
+  }
+
+  const count = await Product.countDocuments(filter);
+
+  const products = await Product.find(filter)
     .sort({ createdAt: -1 })
     .populate("category", "name")
     .limit(pageSize)
@@ -62,6 +207,18 @@ const getLatestProducts = asyncHandler(async (req, res) => {
   res.status(200).json(products);
 });
 
+const getFeaturedProducts = asyncHandler(async (req, res) => {
+  try {
+    const products = await Product.find({ featured: true })
+      .populate("category", "name") // ✅ populate only category name
+      .limit(4);
+
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 const getProductById = asyncHandler(async (req, res) => {
   // 1. Fetch the product and populate category
   const product = await Product.findById(req.params.id).populate("category", "name parent");
@@ -70,18 +227,103 @@ const getProductById = asyncHandler(async (req, res) => {
     throw new Error("Product not found");
   }
 
-  // 6. Return product + discount info
+  // Return product
   res.status(200).json(product);
+});
+// @desc    Get related products (same category + parent + children)
+// @route   GET /api/products/:id/related?limit=8
+// @access  Public
+const getRelatedProducts = asyncHandler(async (req, res) => {
+  const limit = Number(req.query.limit) || 8;
+
+  const current = await Product.findById(req.params.id).populate("category", "_id parent");
+  if (!current) {
+    res.status(404);
+    throw new Error("Product not found");
+  }
+
+  const categoryId = current.category?._id || current.category;
+  if (!categoryId) {
+    // no category -> fallback to latest products excluding current
+    const fallback = await Product.find({ _id: { $ne: current._id } })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .populate("category", "name");
+    return res.status(200).json(fallback);
+  }
+
+  // 1) Load category to get parent
+  const categoryDoc = await Category.findById(categoryId).select("_id parent");
+  if (!categoryDoc) {
+    const fallback = await Product.find({ _id: { $ne: current._id } })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .populate("category", "name");
+    return res.status(200).json(fallback);
+  }
+
+  // 2) Get all children categories recursively
+  const getAllChildCategoryIds = async (catId) => {
+    const ids = [catId];
+    const children = await Category.find({ parent: catId }).select("_id");
+    for (const child of children) {
+      ids.push(...(await getAllChildCategoryIds(child._id)));
+    }
+    return ids;
+  };
+
+  const relatedCategoryIds = new Set();
+  // include self category + children
+  (await getAllChildCategoryIds(categoryDoc._id)).forEach((id) =>
+    relatedCategoryIds.add(String(id)),
+  );
+
+  // include parent + parent's children (siblings)
+  if (categoryDoc.parent) {
+    relatedCategoryIds.add(String(categoryDoc.parent));
+    const siblingsAndTheirChildren = await getAllChildCategoryIds(categoryDoc.parent);
+    siblingsAndTheirChildren.forEach((id) => relatedCategoryIds.add(String(id)));
+  }
+
+  const categoryIdsArr = Array.from(relatedCategoryIds);
+
+  // 3) Query related products excluding current, prefer newest
+  const related = await Product.find({
+    _id: { $ne: current._id },
+    category: { $in: categoryIdsArr },
+  })
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .populate("category", "name");
+
+  // 4) If still not enough, top up with latest products
+  if (related.length < limit) {
+    const needed = limit - related.length;
+    const existingIds = related.map((p) => p._id);
+    const extra = await Product.find({
+      _id: { $nin: [current._id, ...existingIds] },
+    })
+      .sort({ createdAt: -1 })
+      .limit(needed)
+      .populate("category", "name");
+
+    return res.status(200).json([...related, ...extra]);
+  }
+
+  res.status(200).json(related);
 });
 
 const createProduct = asyncHandler(async (req, res) => {
-  const { name, price, image, category, countInStock, description, variants } = req.body;
+  let { name, price, image, category, countInStock, description, variants } = req.body;
 
   // ✅ Validation
   if (!name || !price || !image || !description || !countInStock) {
     res.status(400);
     throw new Error("Please fill all the required fields");
   }
+
+  // ✅ Normalize variants (capitalize size/color)
+  variants = normalizeVariants(variants);
 
   // ✅ Build product object
   const product = {
@@ -101,7 +343,7 @@ const createProduct = asyncHandler(async (req, res) => {
 });
 
 const updateProduct = asyncHandler(async (req, res) => {
-  const {
+  let {
     name,
     price,
     description,
@@ -111,7 +353,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     featured,
     hasDiscount,
     discountBy,
-    variants, // ✅ add this
+    variants,
   } = req.body;
 
   const product = await Product.findById(req.params.id);
@@ -126,10 +368,10 @@ const updateProduct = asyncHandler(async (req, res) => {
     const oldImages = product.image || [];
 
     for (const oldImg of oldImages) {
-      const oldUrl = oldImg.url ? oldImg.url : oldImg;
-      const existsInNew = image.some((img) => (img.url ? img.url : img) === oldUrl);
+      const oldUrl = oldImg?.url ? oldImg.url : oldImg;
+      const existsInNew = image.some((img) => (img?.url ? img.url : img) === oldUrl);
 
-      if (!existsInNew && oldUrl.includes("/uploads/")) {
+      if (!existsInNew && typeof oldUrl === "string" && oldUrl.includes("/uploads/")) {
         const filename = oldUrl.split("/uploads/").pop();
         const filePath = path.join(__dirname, "..", "uploads", filename);
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
@@ -140,32 +382,54 @@ const updateProduct = asyncHandler(async (req, res) => {
   }
 
   // ✅ Update basic fields
-  product.name = name ?? product.name;
-  product.price = price ?? product.price;
-  product.description = description ?? product.description;
-  product.category = category ?? product.category;
-  product.featured = featured ?? product.featured;
+  if (name !== undefined) product.name = name;
+  if (price !== undefined) product.price = Number(price);
+  if (description !== undefined) product.description = description;
+  if (category !== undefined) product.category = category;
+  if (featured !== undefined) product.featured = featured;
 
-  // ✅ Update variants (IMPORTANT)
-  if (variants && Array.isArray(variants)) {
-    product.variants = variants;
+  // --------------------------
+  // ✅ Stock Update (FIXED)
+  // --------------------------
+  const variantsProvided = Array.isArray(variants);
 
-    // ✅ Recommended: sync stock from variants (sum of all sizes stock)
+  if (variantsProvided) {
+    // ✅ Normalize variants (capitalize size/color)
+    variants = normalizeVariants(variants);
+
+    // Only compute stock if variants have sizes with stock
     const totalStock = variants.reduce((acc, v) => {
       const sizes = Array.isArray(v?.sizes) ? v.sizes : [];
       const variantStock = sizes.reduce((sum, s) => sum + Number(s?.stock || 0), 0);
       return acc + variantStock;
     }, 0);
 
-    product.countInStock = totalStock;
+    // ✅ Update variants always
+    product.variants = variants;
+
+    // ✅ If variants truly contain stock data, sync it
+    // ✅ Otherwise DO NOT overwrite countInStock with 0
+    if (totalStock > 0) {
+      product.countInStock = totalStock;
+    } else {
+      // fallback: if user sent countInStock, use it
+      if (countInStock !== undefined) {
+        product.countInStock = Number(countInStock);
+      }
+      // else keep existing product.countInStock
+    }
   } else {
-    // If no variants sent, keep normal stock update
-    product.countInStock = countInStock ?? product.countInStock;
+    // ✅ No variants sent, normal stock update
+    if (countInStock !== undefined) {
+      product.countInStock = Number(countInStock);
+    }
   }
 
+  // --------------------------
   // ✅ Discount logic
-  product.hasDiscount = hasDiscount ?? product.hasDiscount;
-  product.discountBy = discountBy ?? product.discountBy;
+  // --------------------------
+  if (hasDiscount !== undefined) product.hasDiscount = hasDiscount;
+  if (discountBy !== undefined) product.discountBy = Number(discountBy);
 
   const finalHasDiscount = product.hasDiscount === true;
   const finalDiscountBy = Number(product.discountBy || 0);
@@ -181,7 +445,7 @@ const updateProduct = asyncHandler(async (req, res) => {
 // controllers/productController.js
 const updateProductVariants = asyncHandler(async (req, res) => {
   const { id } = req.params; // productId
-  const { variantId, color, sizes, images } = req.body;
+  let { variantId, color, sizes, images } = req.body;
 
   if (!variantId) {
     res.status(400);
@@ -200,14 +464,20 @@ const updateProductVariants = asyncHandler(async (req, res) => {
     throw new Error("Variant not found");
   }
 
+  // ✅ Normalize (capitalize)
+  if (color !== undefined) color = normalizeColor(color);
+  if (Array.isArray(sizes)) {
+    sizes = sizes.map((s) => ({
+      size: normalizeSize(s?.size),
+      stock: s?.stock,
+      price: s?.price ?? 0,
+    }));
+  }
+
   // Update fields
   if (color) product.variants[variantIndex].color = color;
   if (sizes && Array.isArray(sizes)) {
-    product.variants[variantIndex].sizes = sizes.map((s) => ({
-      size: s.size,
-      stock: s.stock,
-      price: s.price ?? 0,
-    }));
+    product.variants[variantIndex].sizes = sizes;
   }
   if (images) product.variants[variantIndex].images = images;
 
@@ -215,6 +485,7 @@ const updateProductVariants = asyncHandler(async (req, res) => {
   product.countInStock = product.variants.reduce((total, v) => {
     return total + v.sizes.reduce((sum, s) => sum + (s.stock || 0), 0);
   }, 0);
+
   const updatedProduct = await product.save();
   res.status(200).json(updatedProduct.variants[variantIndex]);
 });
@@ -241,20 +512,8 @@ const deleteProductVariant = asyncHandler(async (req, res) => {
   res.status(200).json({ message: "Variant deleted successfully" });
 });
 
-const featuredProducts = asyncHandler(async (req, res) => {
-  try {
-    const products = await Product.find({ featured: true })
-      .populate("category", "name") // ✅ populate only category name
-      .limit(4);
-
-    res.json(products);
-  } catch (error) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
 // Get products by category (including children)
-const getProductsByCategory = asyncHandler(async (req, res) => {
+/* const getProductsByCategory = asyncHandler(async (req, res) => {
   const { id } = req.params; // category id from URL
 
   // 1. Check if category exists
@@ -282,6 +541,103 @@ const getProductsByCategory = asyncHandler(async (req, res) => {
 
   console.log(products);
   res.status(200).json(products);
+}); */
+// GET /api/products/category/:id?page=1&limit=12&search=iphone&sort=createdAt&order=desc&minPrice=10&maxPrice=999&inStock=true
+const getProductsByCategory = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  // ✅ Simple query params (with defaults)
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 12;
+
+  const search = (req.query.search || "").trim();
+  const minPrice = req.query.minPrice ? Number(req.query.minPrice) : null;
+  const maxPrice = req.query.maxPrice ? Number(req.query.maxPrice) : null;
+  const inStock = req.query.inStock === "true";
+
+  // ✅ NEW: color filter (supports "red" OR "red,blue")
+  const color = (req.query.color || "").trim(); // e.g. "red" OR "red,blue"
+  const colors = color
+    ? color
+        .split(",")
+        .map((c) => c.trim().toLowerCase())
+        .filter(Boolean)
+    : [];
+
+  // ✅ Simple sort mapping
+  const sortKey = req.query.sort || "createdAt"; // createdAt | price | name
+  const order = req.query.order === "asc" ? 1 : -1;
+  const allowedSort = ["createdAt", "price", "name"];
+  const sortField = allowedSort.includes(sortKey) ? sortKey : "createdAt";
+
+  // 1) category exists
+  const category = await Category.findById(id);
+  if (!category) return res.status(404).json({ message: "Category not found" });
+
+  // 2) get category + children IDs
+  const getAllCategoryIds = async (catId) => {
+    const children = await Category.find({ parent: catId }).select("_id");
+    const childIds = await Promise.all(children.map((c) => getAllCategoryIds(c._id)));
+    return [catId, ...childIds.flat()];
+  };
+
+  const categoryIds = await getAllCategoryIds(category._id);
+
+  // 3) build filter
+  const filter = { category: { $in: categoryIds } };
+
+  if (search) {
+    filter.$or = [
+      { name: { $regex: search, $options: "i" } },
+      { description: { $regex: search, $options: "i" } },
+    ];
+  }
+
+  if (minPrice !== null || maxPrice !== null) {
+    filter.price = {};
+    if (minPrice !== null) filter.price.$gte = minPrice;
+    if (maxPrice !== null) filter.price.$lte = maxPrice;
+  }
+
+  if (inStock) filter.countInStock = { $gt: 0 };
+
+  // ✅ NEW: apply color filter (matches ANY variant color)
+  if (colors.length > 0) {
+    filter["variants.color"] = { $in: colors };
+  }
+
+  // 4) pagination
+  const skip = (page - 1) * limit;
+
+  const [products, total] = await Promise.all([
+    Product.find(filter)
+      .sort({ [sortField]: order })
+      .skip(skip)
+      .limit(limit),
+    Product.countDocuments(filter),
+  ]);
+
+  res.status(200).json({
+    category: { _id: category._id, name: category.name },
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      hasPrev: page > 1,
+      hasNext: page * limit < total,
+    },
+    filters: {
+      search: search || null,
+      minPrice,
+      maxPrice,
+      inStock,
+      color: colors.length ? colors : null,
+      sort: sortField,
+      order: order === 1 ? "asc" : "desc",
+    },
+    products,
+  });
 });
 
 // @desc    Delete a product
@@ -311,49 +667,6 @@ const deleteProduct = asyncHandler(async (req, res) => {
     throw new Error("Product not found");
   }
 });
-// @desc    Create a new review
-// @route   POST /api/products/:id/reviews
-// @access  Private
-const createProductReview = asyncHandler(async (req, res) => {
-  const { rating, comment } = req.body;
-  const product = await Product.findById(req.params.id);
-
-  if (product) {
-    const alreadyReviewed = product.reviews.find(
-      (review) => review.user.toString() === req.user._id.toString(),
-    );
-    if (alreadyReviewed) {
-      res.status(400);
-      throw new Error("Product already reviewed");
-    }
-    const review = {
-      name: req.user.name,
-      rating: Number(rating),
-      comment,
-      user: req.user._id,
-    };
-
-    product.reviews.push(review);
-    product.numReviews = product.reviews.length;
-
-    product.rating =
-      product.reviews.reduce((acc, review) => acc + review.rating, 0) / product.reviews.length;
-
-    await product.save();
-    res.status(201).json({ message: "Review added" });
-  } else {
-    res.status(404);
-    throw new Error("Resource not found");
-  }
-});
-
-// @desc    Get top rated products
-// @route   GET /api/products/top
-// @access  Public
-const getTopRatedProducts = asyncHandler(async (req, res) => {
-  const products = await Product.find({}).sort({ rating: -1 }).limit(3);
-  res.status(200).json(products);
-});
 
 const updateStock = asyncHandler(async (req, res) => {
   const { orderItems } = req.body;
@@ -375,9 +688,10 @@ const updateStock = asyncHandler(async (req, res) => {
           });
         }
 
-        // Find size (optional)
+        // Find size (optional) - compare normalized values
         if (item.variantSize) {
-          const sizeObj = variant.sizes.find((s) => s.size === item.variantSize);
+          const wantedSize = normalizeSize(item.variantSize);
+          const sizeObj = variant.sizes.find((s) => normalizeSize(s.size) === wantedSize);
           if (!sizeObj) {
             return res.status(404).json({
               message: `Size ${item.variantSize} not found for variant ${item.variantId}`,
@@ -413,139 +727,37 @@ const updateStock = asyncHandler(async (req, res) => {
   }
 });
 
-const createShippingPrice = asyncHandler(async (req, res) => {
-  const { timeToDeliver, shippingFee, minDeliveryCost } = req.body;
-
-  const delivery = await Delivery.findOne({});
-
-  if (delivery) {
-    delivery.timeToDeliver = timeToDeliver || delivery.timeToDeliver;
-    delivery.shippingFee = shippingFee || delivery.shippingFee;
-    delivery.minDeliveryCost = minDeliveryCost || delivery.minDeliveryCost;
-
-    const updatedDelivery = await delivery.save();
-
-    res.json(updatedDelivery);
-  }
-});
-const getDeliveryStatus = asyncHandler(async (req, res) => {
-  const delivery = await Delivery.find({});
-
-  res.json(delivery);
-});
-
-const createDiscount = asyncHandler(async (req, res) => {
-  const { discountBy, category } = req.body;
-
-  // 1️⃣ Create the discount
-  const discount = await Discount.create({ discountBy, category });
-
-  // 2️⃣ Update all products in the discounted categories
-  const products = await Product.find({ category: { $in: category } });
-
-  for (const product of products) {
-    product.hasDiscount = discountBy > 0;
-    product.discountBy = discountBy;
-    product.discountedPrice = product.price - product.price * discountBy;
-
-    await product.save();
-  }
-
-  // 3️⃣ Return the created discount
-  res.json(discount);
-});
-
-const updateDiscounts = asyncHandler(async (req, res) => {
-  const { discountBy, category } = req.body;
-  const discount = await Discount.findOne({});
-  if (discount) {
-    discount.discountBy = discountBy || discount.discountBy;
-    discount.category = category || discount.category;
-
-    const updatedDiscount = await discount.save();
-
-    res.json(updatedDiscount);
-  }
-});
-
-const deleteDiscount = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  console.log(id);
-  // 1. Delete the discount
-  const discount = await Discount.findByIdAndDelete(id);
-  if (!discount) {
-    res.status(404);
-    throw new Error("Discount not found");
-  }
-
-  // 2. Reset products linked to this discount's categories
-  await Product.updateMany(
-    { category: { $in: discount.category } }, // products in those categories
-    {
-      $set: { hasDiscount: false },
-      $unset: { discountedPrice: "" }, // remove discountedPrice field
-    },
-  );
-
-  res.json({ message: "Discount deleted and products updated" });
-});
-
-const getDiscountStatus = asyncHandler(async (req, res) => {
-  const discount = await Discount.find({});
-
-  res.json(discount);
-});
-
-const createCategory = asyncHandler(async (req, res) => {
-  const { name } = req.body;
-
-  const checkExists = await Category.findOne({ name: name });
-  if (checkExists) {
-    res.status(500);
-    throw new Error(`Category ${name} already exists`);
-  }
-  const newCategory = await Category.create({ name: name });
-
-  res.status(201).json(newCategory);
-});
-
-/* const getCategories = asyncHandler(async (req, res) => {
-  const categories = await Category.find({});
-  res.status(200).json(categories);
-}); */
-const getCategories = asyncHandler(async (req, res) => {
-  const pageSize = 10; // number of categories per page
+// @desc    Get products on sale (discounted)
+// @route   GET /api/products/sale
+// @access  Public
+const getSaleProducts = asyncHandler(async (req, res) => {
+  const pageSize = Number(req.query.pageSize) || 30;
   const page = Number(req.query.pageNumber) || 1;
 
-  // Optional search by name
+  // optional search
   const keyword = req.query.keyword ? { name: { $regex: req.query.keyword, $options: "i" } } : {};
 
-  // Total count matching keyword
-  const count = await Category.countDocuments({ ...keyword });
+  // sale filter: supports your current data model
+  const saleFilter = {
+    $or: [{ hasDiscount: true }],
+  };
 
-  // Fetch paginated categories
-  const categories = await Category.find({ ...keyword })
-    .sort({ name: 1 }) // optional: sort by name
+  const filter = { ...keyword, ...saleFilter };
+
+  const count = await Product.countDocuments(filter);
+
+  const products = await Product.find(filter)
+    .sort({ createdAt: -1 })
+    .populate("category", "name")
     .limit(pageSize)
     .skip(pageSize * (page - 1));
 
   res.status(200).json({
-    categories,
+    products,
     page,
     pages: Math.ceil(count / pageSize),
     total: count,
   });
-});
-
-const deleteCategory = asyncHandler(async (req, res) => {
-  const { name } = req.body;
-
-  const deleteCategory = await Category.findOneAndDelete({ name: name });
-  if (!deleteCategory) {
-    res.status(404);
-    throw new Error("Category not found");
-  }
-  res.json(deleteCategory);
 });
 
 module.exports = {
@@ -554,25 +766,14 @@ module.exports = {
   createProduct,
   updateProduct,
   deleteProduct,
-  createProductReview,
-  getTopRatedProducts,
   getProductsByCategory,
   updateStock,
-  createShippingPrice,
-  getDeliveryStatus,
-  updateDiscounts,
-  getDiscountStatus,
   getLatestProducts,
-  createDiscount,
-  createCategory,
-  getCategories,
-  deleteCategory,
-  deleteDiscount,
+  getSaleProducts,
   getAllProducts,
   fetchProductsByIds,
-
-  featuredProducts,
-
+  getFeaturedProducts,
   updateProductVariants,
   deleteProductVariant,
+  getRelatedProducts,
 };

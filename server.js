@@ -14,6 +14,9 @@ const {
   storeRoutes,
   categoryRoutes,
   paymentRoutes,
+  couponRoutes,
+  deliveryRoutes,
+  discountRoutes,
 } = require("./routes/index.js");
 
 const { notFound, errorHandle } = require("./middleware/errorMiddleware.js");
@@ -60,10 +63,13 @@ app.use(cookieParser());
 app.use("/api/products", productRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/orders", orderRoutes);
-app.use("/api/update-store-status", storeRoutes);
+app.use("/api/store", storeRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/category", categoryRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/coupons", couponRoutes);
+app.use("/api/delivery", deliveryRoutes);
+app.use("/api/discount", discountRoutes);
 
 app.use(
   "/uploads",

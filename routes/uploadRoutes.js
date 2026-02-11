@@ -1,13 +1,10 @@
 const express = require("express");
 const multer = require("multer");
-const cloudinary = require("cloudinary").v2;
-const streamifier = require("streamifier");
 const path = require("path");
 const fs = require("fs");
 const router = express.Router();
 const sharp = require("sharp");
-
-// Make sure uploads folder exists inside container
+const { protectAdmin, requireAdminRole } = require("../middleware/authMiddleware");
 const uploadPath = "/app/uploads";
 const categoryUploadPath = "/app/uploads/categories";
 const variantUploadPath = "/app/uploads/variants";
@@ -21,11 +18,10 @@ if (!fs.existsSync(variantUploadPath)) fs.mkdirSync(variantUploadPath, { recursi
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadPath),
   filename: (req, file, cb) => {
-    // Get original name without extension
     const name = path.parse(file.originalname).name.replace(/\s+/g, "-").toLowerCase();
-    // Get file extension
+
     const ext = path.extname(file.originalname);
-    // Combine name + timestamp + extension
+
     const filename = `${name}-${Date.now()}${ext}`;
     cb(null, filename);
   },
@@ -33,7 +29,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// Multer storage for categories
 const categoryStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, categoryUploadPath),
   filename: (req, file, cb) => {
@@ -44,7 +39,6 @@ const categoryStorage = multer.diskStorage({
 });
 const uploadCategory = multer({ storage: categoryStorage });
 
-// Multer storage for variants
 const variantsStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, variantUploadPath),
   filename: (req, file, cb) => {
@@ -55,206 +49,109 @@ const variantsStorage = multer.diskStorage({
 });
 const uploadVariant = multer({ storage: variantsStorage });
 
-router.post("/", upload.array("images", 3), async (req, res) => {
-  if (!req.files || req.files.length === 0) {
-    return res.status(400).json({ message: "No files uploaded" });
-  }
-
-  try {
-    const optimizedFiles = [];
-
-    for (const file of req.files) {
-      const optimizedName = `optimized-${file.filename}.webp`;
-      const outputPath = path.join(uploadPath, optimizedName);
-
-      // Optimize image with Sharp
-      await sharp(file.path)
-        .resize({ width: 800 }) // Resize to max width 800px
-        .webp({ quality: 80 }) // Convert to WebP with 80% quality
-        .toFile(outputPath);
-
-      // Remove original uploaded file to save space
-      fs.unlinkSync(file.path);
-
-      const fullUrl = `${req.protocol}://${req.get("host")}/uploads/${optimizedName}`;
-      optimizedFiles.push({
-        imageUrl: fullUrl,
-        publicId: optimizedName,
-      });
+router.post(
+  "/",
+  /* protectAdmin, requireAdminRole, */ upload.array("images", 3),
+  async (req, res) => {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "No files uploaded" });
     }
 
-    res.json({
-      message: "Images uploaded and optimized",
-      images: optimizedFiles,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Image processing failed", error: err.message });
-  }
-});
-/* ----------------- Category Image (single) ----------------- */
-router.post("/category", uploadCategory.single("image"), async (req, res) => {
-  if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    try {
+      const optimizedFiles = [];
 
-  try {
-    const optimizedName = `optimized-${req.file.filename}.webp`;
-    const outputPath = path.join(categoryUploadPath, optimizedName);
+      for (const file of req.files) {
+        const optimizedName = `optimized-${file.filename}.webp`;
+        const outputPath = path.join(uploadPath, optimizedName);
 
-    await sharp(req.file.path).resize({ width: 800 }).webp({ quality: 80 }).toFile(outputPath);
+        await sharp(file.path).resize({ width: 800 }).webp({ quality: 80 }).toFile(outputPath);
 
-    fs.unlinkSync(req.file.path);
+        fs.unlinkSync(file.path);
 
-    res.json({
-      message: "Category image uploaded",
-      image: {
-        imageUrl: `${req.protocol}://${req.get("host")}/uploads/categories/${optimizedName}`,
-        publicId: optimizedName,
-      },
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Image processing failed", error: err.message });
-  }
-});
+        const fullUrl = `${req.protocol}://${req.get("host")}/uploads/${optimizedName}`;
+        optimizedFiles.push({
+          imageUrl: fullUrl,
+          publicId: optimizedName,
+        });
+      }
 
-/* ----------------- Variant Images (multiple) ----------------- */
-router.post("/variant", uploadVariant.array("images", 5), async (req, res) => {
-  if (!req.files || req.files.length === 0) {
-    return res.status(400).json({ message: "No files uploaded" });
-  }
-
-  try {
-    const optimizedFiles = [];
-
-    for (const file of req.files) {
-      const optimizedName = `optimized-${file.filename}.webp`;
-      const outputPath = path.join(variantUploadPath, optimizedName);
-
-      // Optimize image with Sharp
-      await sharp(file.path)
-        .resize({ width: 800 }) // resize max width
-        .webp({ quality: 80 }) // convert to webp
-        .toFile(outputPath);
-
-      // remove original
-      fs.unlinkSync(file.path);
-
-      const fullUrl = `${req.protocol}://${req.get("host")}/uploads/variants/${optimizedName}`;
-      optimizedFiles.push({
-        imageUrl: fullUrl,
-        publicId: optimizedName,
+      res.json({
+        message: "Images uploaded and optimized",
+        images: optimizedFiles,
       });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Image processing failed", error: err.message });
+    }
+  },
+);
+
+router.post(
+  "/category",
+  /*  protectAdmin,
+  requireAdminRole, */
+  uploadCategory.single("image"),
+  async (req, res) => {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+    try {
+      const optimizedName = `optimized-${req.file.filename}.webp`;
+      const outputPath = path.join(categoryUploadPath, optimizedName);
+
+      await sharp(req.file.path).resize({ width: 800 }).webp({ quality: 80 }).toFile(outputPath);
+
+      fs.unlinkSync(req.file.path);
+
+      res.json({
+        message: "Category image uploaded",
+        image: {
+          imageUrl: `${req.protocol}://${req.get("host")}/uploads/categories/${optimizedName}`,
+          publicId: optimizedName,
+        },
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Image processing failed", error: err.message });
+    }
+  },
+);
+
+router.post(
+  "/variant",
+  /* protectAdmin,
+  requireAdminRole, */
+  uploadVariant.array("images", 5),
+  async (req, res) => {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "No files uploaded" });
     }
 
-    res.json({
-      message: "Variant images uploaded",
-      images: optimizedFiles,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Variant image upload failed", error: err.message });
-  }
-});
+    try {
+      const optimizedFiles = [];
+
+      for (const file of req.files) {
+        const optimizedName = `optimized-${file.filename}.webp`;
+        const outputPath = path.join(variantUploadPath, optimizedName);
+
+        await sharp(file.path).resize({ width: 800 }).webp({ quality: 80 }).toFile(outputPath);
+
+        fs.unlinkSync(file.path);
+
+        const fullUrl = `${req.protocol}://${req.get("host")}/uploads/variants/${optimizedName}`;
+        optimizedFiles.push({
+          imageUrl: fullUrl,
+          publicId: optimizedName,
+        });
+      }
+
+      res.json({
+        message: "Variant images uploaded",
+        images: optimizedFiles,
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Variant image upload failed", error: err.message });
+    }
+  },
+);
 module.exports = router;
-/* // Upload route
-router.post("/", upload.single("image"), (req, res) => {
-  if (!req.file) return res.status(400).json({ message: "No file uploaded" });
-
-  // Construct full URL
-  const fullUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
-
-  // Return the path to access the file
-  res.json({
-    message: "Image uploaded",
-    imageUrl: fullUrl, // <-- full URL now
-    publicId: req.file.filename,
-  });
-}); */
-// Upload multiple images
-
-/* 
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
-// Multer memory storage
-const upload = multer({ storage: multer.memoryStorage() });
-
-// Upload route
-router.post("/", upload.single("image"), async (req, res) => {
-  if (!req.file) return res.status(400).json({ message: "No file uploaded" });
-
-  const streamUpload = (reqFile) => {
-    return new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        { folder: "your-folder-name" },
-        (error, result) => {
-          if (result) resolve(result);
-          else reject(error);
-        }
-      );
-      streamifier.createReadStream(reqFile.buffer).pipe(stream);
-    });
-  };
-
-  try {
-    const result = await streamUpload(req.file);
-
-    res.json({
-      message: "Image uploaded",
-      image: result.secure_url, // the URL to display
-      publicId: result.public_id, // save this in DB when product is created
-    });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-module.exports = router; */
-
-/* const path = require("path");
-const express = require("express");
-const multer = require("multer");
-
-const router = express.Router();
-
-const storage = multer.diskStorage({
-  destination(req, file, cb) {
-    cb(null, path.join(__dirname, "../uploads"));
-  },
-  filename(req, file, cb) {
-    cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
-  },
-});
-
-function checkFileType(file, cb) {
-  const filetypes = /jpg|jpeg|png/;
-  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-
-  const mimetype = filetypes.test(file.mimetype);
-  if (extname && mimetype) {
-    return cb(null, true);
-  } else {
-    cb("Image only!");
-  }
-}
-
-const upload = multer({
-  storage,
-  fileFilter: function (req, file, cb) {
-    checkFileType(file, cb);
-  },
-});
-
-router.post("/", upload.single("image"), (req, res) => {
-  res.send({
-    message: "Image uploaded",
-    image: `http://localhost:4001/uploads/${req.file.filename}`,
-  });
-});
-
-module.exports = router;
- */

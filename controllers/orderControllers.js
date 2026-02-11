@@ -12,11 +12,18 @@ const addOrderItems = asyncHandler(async (req, res) => {
     shippingAddress,
     paymentMethod,
     itemsPrice,
-    taxPrice,
     shippingPrice,
     totalPrice,
     isPaid,
+    coupon, // ✅ NEW
+    discountAmount, // ✅ NEW
   } = req.body;
+
+  // ✅ Blocked user check
+  if (req.user?.isBlocked) {
+    res.status(403);
+    throw new Error("Your account is blocked. You cannot place orders.");
+  }
 
   if (!orderItems || orderItems.length === 0) {
     res.status(400);
@@ -29,20 +36,19 @@ const addOrderItems = asyncHandler(async (req, res) => {
     shippingAddress,
     paymentMethod,
     itemsPrice,
-    taxPrice,
     shippingPrice,
     totalPrice,
-    isPaid,
+    isPaid: !!isPaid,
+    coupon: coupon || null,
+    discountAmount: Number(discountAmount || 0),
   });
 
   const createdOrder = await order.save();
 
-  // Optionally populate product + variant info before returning
   const populatedOrder = await Order.findById(createdOrder._id)
     .populate("user", "name email")
     .populate("orderItems.product", "name");
 
-  // Send email to admin after the order is created
   await sendOrderEmail(populatedOrder);
 
   res.status(201).json(populatedOrder);

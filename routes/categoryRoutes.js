@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Category = require("../models/categoryModel");
-const { protectUser, protectAdmin } = require("../middleware/authMiddleware");
+const { protectUser, protectAdmin, requireAdminRole } = require("../middleware/authMiddleware");
 const {
   createCategory,
   deleteCategory,
@@ -11,15 +11,15 @@ const {
 } = require("../controllers/categoryControllers");
 
 // Create a category or subcategory
-router.post("/", protectUser, protectAdmin, createCategory);
+router.post("/", protectAdmin, requireAdminRole, createCategory);
 
 // Delete a category by name
-router.delete("/", protectUser, protectAdmin, deleteCategory);
+router.delete("/", protectAdmin, requireAdminRole, deleteCategory);
 
 // Get all categories (flat list)
 router.get("/", getCategories);
 router.get("/main-cat-count", getMainCategoriesWithCounts);
-router.put("/:id", protectUser, protectAdmin, updateCategory);
+router.put("/:id", protectAdmin, requireAdminRole, updateCategory);
 
 const getAllCategories = async (req, res) => {
   const categories = await Category.find().populate("parent", "name");
@@ -37,7 +37,7 @@ const getCategoryTree = async (parentId = null) => {
       name: cat.name,
       image: cat.image,
       children: await getCategoryTree(cat._id),
-    }))
+    })),
   );
 };
 

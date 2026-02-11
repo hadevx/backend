@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { protectUser, protectAdmin } = require("../middleware/authMiddleware");
+const { protectUser, protectAdmin, requireAdminRole } = require("../middleware/authMiddleware");
 const { registerLimiter, loginLimiter } = require("../utils/registerLimit");
 const {
   loginUser,
@@ -19,12 +19,16 @@ const {
   forgetPassword,
   resetPassword,
   getGovernorates,
+  toggleBlockUser,
+  toggleVIPUser,
+  logoutAdmin,
 } = require("../controllers/userController");
 const {
   registerValidation,
   loginValidation,
   addressValidation,
 } = require("../middleware/validateMiddleware");
+
 /* /api/users */
 
 // Client routes
@@ -40,12 +44,14 @@ router.post("/logout", logoutUser);
 // Admin routes
 router.post("/admin", loginLimiter, loginValidation, loginAdmin);
 router.get("/governorates", getGovernorates);
-router.get("/", protectUser, protectAdmin, getUsers);
-router.put("/:id", protectUser, updateUser);
-router.delete("/:id", protectUser, protectAdmin, deleteUser);
-router.get("/:id", protectUser, protectAdmin, getUserById);
+router.get("/", protectAdmin, requireAdminRole, getUsers);
+router.put("/:id", protectAdmin, requireAdminRole, updateUser);
+router.delete("/:id", protectAdmin, requireAdminRole, deleteUser);
+router.get("/:id", protectAdmin, requireAdminRole, getUserById);
+router.put("/:id/block", protectAdmin, requireAdminRole, toggleBlockUser);
+router.put("/:id/vip", protectAdmin, requireAdminRole, toggleVIPUser);
 
-router.post("/admin/logout", logoutUser);
+router.post("/admin/logout", logoutAdmin);
 
 router.post("/forget-password", forgetPassword);
 router.post("/reset-password/:token", resetPassword);
