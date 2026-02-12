@@ -6,7 +6,7 @@ const { sendOrderEmail } = require("../utils/emailService");
 // @desc    Create new order
 // @route   POST /api/orders
 // @access  Private
-const addOrderItems = asyncHandler(async (req, res) => {
+const createOrder = asyncHandler(async (req, res) => {
   const {
     orderItems,
     shippingAddress,
@@ -29,7 +29,61 @@ const addOrderItems = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("No order items");
   }
+  /*  */
+  try {
+    for (const item of orderItems) {
+      const product = await Product.findById(item.product); // 🔹 fixed
 
+      if (!product) {
+        return res.status(404).json({ message: `Product with ID ${item.productId} not found` });
+      }
+
+      if (product.variants && product.variants.length > 0) {
+        // Find the variant by ID
+        const variant = product.variants.id(item.variantId);
+        if (!variant) {
+          return res.status(404).json({
+            message: `Variant with ID ${item.variantId} not found for product ${item.productId}`,
+          });
+        }
+
+        // Find size (optional) - compare normalized values
+        if (item.variantSize) {
+          const wantedSize = normalizeSize(item.variantSize);
+          const sizeObj = variant.sizes.find((s) => normalizeSize(s.size) === wantedSize);
+          if (!sizeObj) {
+            return res.status(404).json({
+              message: `Size ${item.variantSize} not found for variant ${item.variantId}`,
+            });
+          }
+
+          sizeObj.stock -= item.qty;
+          if (sizeObj.stock < 0) sizeObj.stock = 0;
+        } else {
+          // No sizes, just decrease variant stock
+          variant.stock -= item.qty;
+          if (variant.stock < 0) variant.stock = 0;
+        }
+
+        // Update total product stock
+        product.countInStock = product.variants.reduce(
+          (acc, v) =>
+            acc + (v.sizes?.length ? v.sizes.reduce((sum, s) => sum + s.stock, 0) : v.stock || 0),
+          0,
+        );
+      } else {
+        // No variants → update product stock directly
+        product.countInStock -= item.qty;
+        if (product.countInStock < 0) product.countInStock = 0;
+      }
+
+      await product.save();
+    }
+  } catch (err) {
+    res.status(401).json({ message: "Error Updating Stock" });
+  }
+
+  /*  */
   const order = new Order({
     orderItems,
     user: req.user._id,
@@ -137,8 +191,6 @@ const updateOrderToCanceled = asyncHandler(async (req, res) => {
     throw new Error("Order not found");
   }
 });
-
-// POST /api/orders/check-stock
 
 // POST /api/orders/check-stock
 const checkStock = asyncHandler(async (req, res) => {
@@ -313,7 +365,7 @@ const getRevenueStats = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  addOrderItems,
+  createOrder,
   getMyOrders,
   getOrderById,
   updateOrderToPaid,

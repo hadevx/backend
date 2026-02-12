@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { protectUser, protectAdmin, requireAdminRole } = require("../middleware/authMiddleware");
 const {
-  addOrderItems,
+  createOrder,
   getMyOrders,
   getOrderById,
   updateOrderToPaid,
@@ -20,7 +20,7 @@ router.get("/user-orders/:id", getUserOrders);
 router.post("/check-stock", checkStock);
 router.get("/stats", protectAdmin, requireAdminRole, getOrderStats);
 router.get("/revenu", protectAdmin, requireAdminRole, getRevenueStats);
-router.post("/", protectUser, addOrderItems);
+router.post("/", protectUser, createOrder);
 router.get("/", protectAdmin, requireAdminRole, getOrders);
 
 router.get("/mine", protectUser, getMyOrders);
