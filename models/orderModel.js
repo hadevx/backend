@@ -21,9 +21,7 @@ const orderSchema = new Schema(
           },
         ],
 
-        // ✅ IMPORTANT: this must be the FINAL unit price saved at order time (after sale + coupon)
         price: { type: Number, required: true },
-
         product: { type: mongoose.Schema.Types.ObjectId, required: true, ref: "Product" },
 
         variantId: { type: mongoose.Schema.Types.ObjectId },

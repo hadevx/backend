@@ -6,7 +6,8 @@ const { sendOrderEmail } = require("../utils/emailService");
 // @desc    Create new order
 // @route   POST /api/orders
 // @access  Private
-const createOrder = asyncHandler(async (req, res) => {
+
+/* const createOrder = asyncHandler(async (req, res) => {
   const {
     orderItems,
     shippingAddress,
@@ -15,11 +16,11 @@ const createOrder = asyncHandler(async (req, res) => {
     shippingPrice,
     totalPrice,
     isPaid,
-    coupon, // ✅ NEW
-    discountAmount, // ✅ NEW
+    coupon,
+    discountAmount,
   } = req.body;
 
-  // ✅ Blocked user check
+  // Blocked users cannot place orders
   if (req.user?.isBlocked) {
     res.status(403);
     throw new Error("Your account is blocked. You cannot place orders.");
@@ -29,61 +30,7 @@ const createOrder = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error("No order items");
   }
-  /*  */
-  try {
-    for (const item of orderItems) {
-      const product = await Product.findById(item.product); // 🔹 fixed
 
-      if (!product) {
-        return res.status(404).json({ message: `Product with ID ${item.productId} not found` });
-      }
-
-      if (product.variants && product.variants.length > 0) {
-        // Find the variant by ID
-        const variant = product.variants.id(item.variantId);
-        if (!variant) {
-          return res.status(404).json({
-            message: `Variant with ID ${item.variantId} not found for product ${item.productId}`,
-          });
-        }
-
-        // Find size (optional) - compare normalized values
-        if (item.variantSize) {
-          const wantedSize = normalizeSize(item.variantSize);
-          const sizeObj = variant.sizes.find((s) => normalizeSize(s.size) === wantedSize);
-          if (!sizeObj) {
-            return res.status(404).json({
-              message: `Size ${item.variantSize} not found for variant ${item.variantId}`,
-            });
-          }
-
-          sizeObj.stock -= item.qty;
-          if (sizeObj.stock < 0) sizeObj.stock = 0;
-        } else {
-          // No sizes, just decrease variant stock
-          variant.stock -= item.qty;
-          if (variant.stock < 0) variant.stock = 0;
-        }
-
-        // Update total product stock
-        product.countInStock = product.variants.reduce(
-          (acc, v) =>
-            acc + (v.sizes?.length ? v.sizes.reduce((sum, s) => sum + s.stock, 0) : v.stock || 0),
-          0,
-        );
-      } else {
-        // No variants → update product stock directly
-        product.countInStock -= item.qty;
-        if (product.countInStock < 0) product.countInStock = 0;
-      }
-
-      await product.save();
-    }
-  } catch (err) {
-    res.status(401).json({ message: "Error Updating Stock" });
-  }
-
-  /*  */
   const order = new Order({
     orderItems,
     user: req.user._id,
@@ -105,6 +52,146 @@ const createOrder = asyncHandler(async (req, res) => {
 
   await sendOrderEmail(populatedOrder);
 
+  res.status(201).json(populatedOrder);
+}); */
+
+const createOrder = asyncHandler(async (req, res) => {
+  const {
+    orderItems,
+    shippingAddress,
+    paymentMethod,
+    itemsPrice,
+    shippingPrice,
+    totalPrice,
+    isPaid,
+    coupon,
+    discountAmount,
+  } = req.body;
+
+  // ---------------------------------------------------
+  // 1️⃣ Blocked users cannot place orders
+  // ---------------------------------------------------
+  if (req.user?.isBlocked) {
+    res.status(403);
+    throw new Error("Your account is blocked. You cannot place orders.");
+  }
+
+  // ---------------------------------------------------
+  // 2️⃣ Make sure cart is not empty
+  // ---------------------------------------------------
+  if (!orderItems || orderItems.length === 0) {
+    res.status(400);
+    throw new Error("No order items");
+  }
+
+  // ---------------------------------------------------
+  // 3️⃣ CHECK STOCK FIRST (before creating order)
+  // ---------------------------------------------------
+  for (const item of orderItems) {
+    const product = await Product.findById(item.product);
+
+    if (!product) {
+      res.status(404);
+      throw new Error(`Product not found`);
+    }
+
+    const qty = Number(item.qty);
+
+    // If product has variants (Option A: sizes only)
+    if (product.variants && product.variants.length > 0) {
+      const variant = product.variants.id(item.variantId);
+
+      if (!variant) {
+        res.status(404);
+        throw new Error(`Variant not found`);
+      }
+
+      if (!item.variantSize) {
+        res.status(400);
+        throw new Error(`Size is required`);
+      }
+
+      const wantedSize = normalizeSize(item.variantSize);
+      const sizeObj = variant.sizes.find((s) => normalizeSize(s.size) === wantedSize);
+
+      if (!sizeObj) {
+        res.status(404);
+        throw new Error(`Size not found`);
+      }
+
+      // ❌ Not enough stock
+      if (sizeObj.stock < qty) {
+        res.status(400);
+        throw new Error(`Not enough stock for ${product.name} (${variant.color}/${sizeObj.size})`);
+      }
+    } else {
+      // Product without variants
+      if (product.countInStock < qty) {
+        res.status(400);
+        throw new Error(`Not enough stock for ${product.name}`);
+      }
+    }
+  }
+
+  // ---------------------------------------------------
+  // 4️⃣ CREATE ORDER (after stock is confirmed)
+  // ---------------------------------------------------
+  const order = new Order({
+    orderItems,
+    user: req.user._id,
+    shippingAddress,
+    paymentMethod,
+    itemsPrice,
+    shippingPrice,
+    totalPrice,
+    isPaid: !!isPaid,
+    coupon: coupon || null,
+    discountAmount: Number(discountAmount || 0),
+  });
+
+  const createdOrder = await order.save();
+
+  // ---------------------------------------------------
+  // 5️⃣ UPDATE STOCK (after order is created)
+  // ---------------------------------------------------
+  for (const item of orderItems) {
+    const product = await Product.findById(item.product);
+    const qty = Number(item.qty);
+
+    if (product.variants && product.variants.length > 0) {
+      const variant = product.variants.id(item.variantId);
+      const wantedSize = normalizeSize(item.variantSize);
+
+      const sizeObj = variant.sizes.find((s) => normalizeSize(s.size) === wantedSize);
+
+      // Decrease size stock
+      sizeObj.stock -= qty;
+
+      // Recalculate total stock of product
+      product.countInStock = product.variants.reduce(
+        (acc, v) => acc + v.sizes.reduce((sum, s) => sum + s.stock, 0),
+        0,
+      );
+    } else {
+      // No variants
+      product.countInStock -= qty;
+    }
+
+    await product.save();
+  }
+
+  // ---------------------------------------------------
+  // 6️⃣ Populate & Send Email
+  // ---------------------------------------------------
+  const populatedOrder = await Order.findById(createdOrder._id)
+    .populate("user", "name email")
+    .populate("orderItems.product", "name");
+
+  await sendOrderEmail(populatedOrder);
+
+  // ---------------------------------------------------
+  // 7️⃣ Return response
+  // ---------------------------------------------------
   res.status(201).json(populatedOrder);
 });
 

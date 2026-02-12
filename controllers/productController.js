@@ -673,7 +673,7 @@ const updateStock = asyncHandler(async (req, res) => {
 
   try {
     for (const item of orderItems) {
-      const product = await Product.findById(item.product); // 🔹 fixed
+      const product = await Product.findById(item.product);
 
       if (!product) {
         return res.status(404).json({ message: `Product with ID ${item.productId} not found` });
