@@ -17,6 +17,7 @@ const {
   updateProductVariants,
   deleteProductVariant,
   getRelatedProducts,
+  getHomeCategorySections,
 } = require("../controllers/productController");
 
 const { protectAdmin, requireAdminRole } = require("../middleware/authMiddleware");
@@ -25,44 +26,41 @@ const { protectAdmin, requireAdminRole } = require("../middleware/authMiddleware
  * BASE PATH: /api/products
  * ======================
  * STATIC ROUTES FIRST
- * PARAM ROUTES (/:id) LAST
+ * PARAM ROUTES (/:id and /:id/*) LAST
  */
 
 /* =======================
-   PRODUCTS (STATIC)
+   STATIC ROUTES
 ======================= */
 router.get("/latest", getLatestProducts);
-router.get("/:id/related", getRelatedProducts);
+router.get("/home-sections", getHomeCategorySections);
 router.get("/sale", getSaleProducts);
 router.get("/featured", getFeaturedProducts);
 router.get("/all", getAllProducts);
+router.get("/category/:id", getProductsByCategory); // this is ok here (more specific than /:id)
 router.get("/", getProducts);
 
 /* =======================
-   PRODUCTS (CREATE)
+   CREATE / ACTIONS
 ======================= */
-router.post("/", protectAdmin, requireAdminRole, createProduct);
 router.post("/fetch-by-ids", fetchProductsByIds);
+router.post("/", protectAdmin, requireAdminRole, createProduct);
 
 /* =======================
-   PRODUCT STOCK
+   STOCK
 ======================= */
 router.post("/update-stock", protectAdmin, requireAdminRole, updateStock);
 
 /* =======================
-   PRODUCT VARIANTS
+   VARIANTS
 ======================= */
 router.put("/variant/:id", protectAdmin, requireAdminRole, updateProductVariants);
 router.delete("/variant/:id", protectAdmin, requireAdminRole, deleteProductVariant);
 
 /* =======================
-   PRODUCTS BY CATEGORY
+   PARAM ROUTES (LAST)
 ======================= */
-router.get("/category/:id", getProductsByCategory);
-
-/* =======================
-   SINGLE PRODUCT (LAST)
-======================= */
+router.get("/:id/related", getRelatedProducts); // ✅ moved down
 router.get("/:id", getProductById);
 router.put("/:id", protectAdmin, requireAdminRole, updateProduct);
 router.delete("/:id", protectAdmin, requireAdminRole, deleteProduct);

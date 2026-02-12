@@ -1,7 +1,5 @@
 const asyncHandler = require("../middleware/asyncHandler");
 const Product = require("../models/productModel");
-const Delivery = require("../models/deliveryModel");
-const Discount = require("../models/discountModel");
 const Category = require("../models/categoryModel");
 const fs = require("fs");
 const path = require("path");
@@ -760,6 +758,57 @@ const getSaleProducts = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Home sections: main categories + 4 products per category (includes children)
+// @route   GET /api/products/home-sections?limitCategories=6&limitProducts=4
+// @access  Public
+const getHomeCategorySections = asyncHandler(async (req, res) => {
+  const limitCategories = Number(req.query.limitCategories) || 6;
+  const limitProducts = Number(req.query.limitProducts) || 4;
+
+  // 1) Main categories (top-level)
+  const mainCategories = await Category.find({ parent: null })
+    .sort({ createdAt: -1 })
+    .limit(limitCategories)
+    .select("_id name image");
+
+  // helper: get all children recursively
+  const getAllChildCategoryIds = async (catId) => {
+    const ids = [catId];
+    const children = await Category.find({ parent: catId }).select("_id");
+    for (const child of children) {
+      ids.push(...(await getAllChildCategoryIds(child._id)));
+    }
+    return ids;
+  };
+
+  // 2) For each main category, fetch products from it (and its children)
+  const sections = await Promise.all(
+    mainCategories.map(async (cat) => {
+      const categoryIds = await getAllChildCategoryIds(cat._id);
+
+      const products = await Product.find({ category: { $in: categoryIds } })
+        .sort({ createdAt: -1 })
+        .limit(limitProducts)
+        .populate("category", "name");
+
+      return {
+        category: {
+          _id: cat._id,
+          name: cat.name,
+          image: cat.image || null,
+        },
+        products,
+      };
+    }),
+  );
+
+  res.status(200).json({
+    limitCategories,
+    limitProducts,
+    sections,
+  });
+});
+
 module.exports = {
   getProducts,
   getProductById,
@@ -776,4 +825,5 @@ module.exports = {
   updateProductVariants,
   deleteProductVariant,
   getRelatedProducts,
+  getHomeCategorySections,
 };
