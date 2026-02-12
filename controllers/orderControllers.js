@@ -54,12 +54,12 @@ const { sendOrderEmail } = require("../utils/emailService");
 
   res.status(201).json(populatedOrder);
 }); */
-const normalizeSize = (size) => {
+/* const normalizeSize = (size) => {
   if (!size) return "";
 
   return String(size).trim().toLowerCase().replace(/\s+/g, ""); // removes spaces
-};
-const createOrder = asyncHandler(async (req, res) => {
+}; */
+/* const createOrder = asyncHandler(async (req, res) => {
   const {
     orderItems,
     shippingAddress,
@@ -197,6 +197,141 @@ const createOrder = asyncHandler(async (req, res) => {
   // ---------------------------------------------------
   // 7️⃣ Return response
   // ---------------------------------------------------
+  res.status(201).json(populatedOrder);
+}); */
+const createOrder = asyncHandler(async (req, res) => {
+  const {
+    orderItems,
+    shippingAddress,
+    paymentMethod,
+    itemsPrice,
+    shippingPrice,
+    totalPrice,
+    isPaid,
+    coupon,
+    discountAmount,
+  } = req.body;
+
+  // 1️⃣ Block blocked users
+  if (req.user?.isBlocked) {
+    res.status(403);
+    throw new Error("Your account is blocked.");
+  }
+
+  if (!orderItems || orderItems.length === 0) {
+    res.status(400);
+    throw new Error("No order items");
+  }
+
+  // ---------------------------------------------------
+  // 2️⃣ LOAD ALL PRODUCTS AT ONCE
+  // ---------------------------------------------------
+  const productIds = [...new Set(orderItems.map((item) => item.product))];
+
+  const products = await Product.find({ _id: { $in: productIds } });
+
+  // Create quick lookup map
+  const productMap = new Map();
+  products.forEach((p) => productMap.set(p._id.toString(), p));
+
+  // ---------------------------------------------------
+  // 3️⃣ CHECK STOCK
+  // ---------------------------------------------------
+  for (const item of orderItems) {
+    const product = productMap.get(item.product.toString());
+
+    if (!product) {
+      res.status(404);
+      throw new Error("Product not found");
+    }
+
+    const qty = Number(item.qty);
+
+    if (product.variants?.length > 0) {
+      const variant = product.variants.id(item.variantId);
+
+      if (!variant) {
+        res.status(404);
+        throw new Error("Variant not found");
+      }
+
+      if (!item.variantSize) {
+        res.status(400);
+        throw new Error("Size is required");
+      }
+
+      const sizeObj = variant.sizes.find((s) => s.size === item.variantSize);
+
+      if (!sizeObj) {
+        res.status(404);
+        throw new Error("Size not found");
+      }
+
+      if (sizeObj.stock < qty) {
+        res.status(400);
+        throw new Error(`Not enough stock for ${product.name} (${variant.color}/${sizeObj.size})`);
+      }
+    } else {
+      if (product.countInStock < qty) {
+        res.status(400);
+        throw new Error(`Not enough stock for ${product.name}`);
+      }
+    }
+  }
+
+  // ---------------------------------------------------
+  // 4️⃣ CREATE ORDER
+  // ---------------------------------------------------
+  const order = new Order({
+    orderItems,
+    user: req.user._id,
+    shippingAddress,
+    paymentMethod,
+    itemsPrice,
+    shippingPrice,
+    totalPrice,
+    isPaid: !!isPaid,
+    coupon: coupon || null,
+    discountAmount: Number(discountAmount || 0),
+  });
+
+  const createdOrder = await order.save();
+
+  // ---------------------------------------------------
+  // 5️⃣ UPDATE STOCK (using same loaded products)
+  // ---------------------------------------------------
+  for (const item of orderItems) {
+    const product = productMap.get(item.product.toString());
+    const qty = Number(item.qty);
+
+    if (product.variants?.length > 0) {
+      const variant = product.variants.id(item.variantId);
+      const sizeObj = variant.sizes.find((s) => s.size === item.variantSize);
+
+      sizeObj.stock -= qty;
+
+      // Recalculate total stock
+      product.countInStock = product.variants.reduce(
+        (acc, v) => acc + v.sizes.reduce((sum, s) => sum + s.stock, 0),
+        0,
+      );
+    } else {
+      product.countInStock -= qty;
+    }
+  }
+
+  // Save all modified products
+  await Promise.all(products.map((p) => p.save()));
+
+  // ---------------------------------------------------
+  // 6️⃣ Populate + Send Email
+  // ---------------------------------------------------
+  const populatedOrder = await Order.findById(createdOrder._id)
+    .populate("user", "name email")
+    .populate("orderItems.product", "name");
+
+  await sendOrderEmail(populatedOrder);
+
   res.status(201).json(populatedOrder);
 });
 
