@@ -54,7 +54,11 @@ const { sendOrderEmail } = require("../utils/emailService");
 
   res.status(201).json(populatedOrder);
 }); */
+const normalizeSize = (size) => {
+  if (!size) return "";
 
+  return String(size).trim().toLowerCase().replace(/\s+/g, ""); // removes spaces
+};
 const createOrder = asyncHandler(async (req, res) => {
   const {
     orderItems,
@@ -68,64 +72,66 @@ const createOrder = asyncHandler(async (req, res) => {
     discountAmount,
   } = req.body;
 
-  // ---------------------------------------------------
-  // 1️⃣ Blocked users cannot place orders
-  // ---------------------------------------------------
+  // 1️⃣ Block blocked users
   if (req.user?.isBlocked) {
     res.status(403);
-    throw new Error("Your account is blocked. You cannot place orders.");
+    throw new Error("Your account is blocked.");
   }
 
-  // ---------------------------------------------------
-  // 2️⃣ Make sure cart is not empty
-  // ---------------------------------------------------
   if (!orderItems || orderItems.length === 0) {
     res.status(400);
     throw new Error("No order items");
   }
 
   // ---------------------------------------------------
-  // 3️⃣ CHECK STOCK FIRST (before creating order)
+  // 2️⃣ LOAD ALL PRODUCTS AT ONCE
+  // ---------------------------------------------------
+  const productIds = [...new Set(orderItems.map((item) => item.product))];
+
+  const products = await Product.find({ _id: { $in: productIds } });
+
+  // Create quick lookup map
+  const productMap = new Map();
+  products.forEach((p) => productMap.set(p._id.toString(), p));
+
+  // ---------------------------------------------------
+  // 3️⃣ CHECK STOCK
   // ---------------------------------------------------
   for (const item of orderItems) {
-    const product = await Product.findById(item.product);
+    const product = productMap.get(item.product.toString());
 
     if (!product) {
       res.status(404);
-      throw new Error(`Product not found`);
+      throw new Error("Product not found");
     }
 
     const qty = Number(item.qty);
 
-    // If product has variants (Option A: sizes only)
-    if (product.variants && product.variants.length > 0) {
+    if (product.variants?.length > 0) {
       const variant = product.variants.id(item.variantId);
 
       if (!variant) {
         res.status(404);
-        throw new Error(`Variant not found`);
+        throw new Error("Variant not found");
       }
 
       if (!item.variantSize) {
         res.status(400);
-        throw new Error(`Size is required`);
+        throw new Error("Size is required");
       }
 
-      const wantedSize = normalizeSize(item.variantSize);
-      const sizeObj = variant.sizes.find((s) => normalizeSize(s.size) === wantedSize);
+      const sizeObj = variant.sizes.find((s) => s.size === item.variantSize);
 
       if (!sizeObj) {
         res.status(404);
-        throw new Error(`Size not found`);
+        throw new Error("Size not found");
       }
 
-      // ❌ Not enough stock
       if (sizeObj.stock < qty) {
         res.status(400);
         throw new Error(`Not enough stock for ${product.name} (${variant.color}/${sizeObj.size})`);
       }
     } else {
-      // Product without variants
       if (product.countInStock < qty) {
         res.status(400);
         throw new Error(`Not enough stock for ${product.name}`);
@@ -134,7 +140,7 @@ const createOrder = asyncHandler(async (req, res) => {
   }
 
   // ---------------------------------------------------
-  // 4️⃣ CREATE ORDER (after stock is confirmed)
+  // 4️⃣ CREATE ORDER
   // ---------------------------------------------------
   const order = new Order({
     orderItems,
@@ -152,36 +158,33 @@ const createOrder = asyncHandler(async (req, res) => {
   const createdOrder = await order.save();
 
   // ---------------------------------------------------
-  // 5️⃣ UPDATE STOCK (after order is created)
+  // 5️⃣ UPDATE STOCK (using same loaded products)
   // ---------------------------------------------------
   for (const item of orderItems) {
-    const product = await Product.findById(item.product);
+    const product = productMap.get(item.product.toString());
     const qty = Number(item.qty);
 
-    if (product.variants && product.variants.length > 0) {
+    if (product.variants?.length > 0) {
       const variant = product.variants.id(item.variantId);
-      const wantedSize = normalizeSize(item.variantSize);
+      const sizeObj = variant.sizes.find((s) => s.size === item.variantSize);
 
-      const sizeObj = variant.sizes.find((s) => normalizeSize(s.size) === wantedSize);
-
-      // Decrease size stock
       sizeObj.stock -= qty;
 
-      // Recalculate total stock of product
+      // Recalculate total stock
       product.countInStock = product.variants.reduce(
         (acc, v) => acc + v.sizes.reduce((sum, s) => sum + s.stock, 0),
         0,
       );
     } else {
-      // No variants
       product.countInStock -= qty;
     }
-
-    await product.save();
   }
 
+  // Save all modified products
+  await Promise.all(products.map((p) => p.save()));
+
   // ---------------------------------------------------
-  // 6️⃣ Populate & Send Email
+  // 6️⃣ Populate + Send Email
   // ---------------------------------------------------
   const populatedOrder = await Order.findById(createdOrder._id)
     .populate("user", "name email")
@@ -189,9 +192,6 @@ const createOrder = asyncHandler(async (req, res) => {
 
   await sendOrderEmail(populatedOrder);
 
-  // ---------------------------------------------------
-  // 7️⃣ Return response
-  // ---------------------------------------------------
   res.status(201).json(populatedOrder);
 });
 
