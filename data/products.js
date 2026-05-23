@@ -3,7 +3,7 @@ const products = [
     name: "Bag",
     image: [
       {
-        url: "/uploads/bag.webp",
+        url: "/uploads/bag.png",
         publicId: "bag.webp",
       },
     ],
