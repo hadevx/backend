@@ -5,14 +5,14 @@ const orders = [
       {
         name: "Sample Product A",
         qty: 1,
-        image: "/images/sample-a.jpg",
+        image: [{ url: "/images/sample-a.jpg", publicId: "sample-a.jpg" }],
         price: 10.0,
         product: "64fa1d9cfc13ae4aa6001001",
       },
       {
         name: "Sample Product B",
         qty: 2,
-        image: "/images/sample-b.jpg",
+        image: [{ url: "/images/sample-b.jpg", publicId: "sample-b.jpg" }],
         price: 15.0,
         product: "64fa1d9cfc13ae4aa6001002",
       },
@@ -38,7 +38,7 @@ const orders = [
       {
         name: "Sample Product C",
         qty: 1,
-        image: "/images/sample-c.jpg",
+        image: [{ url: "/images/sample-c.jpg", publicId: "sample-c.jpg" }],
         price: 20.0,
         product: "64fa1d9cfc13ae4aa6001003",
       },
@@ -65,7 +65,7 @@ const orders = [
       {
         name: "Sample Product D",
         qty: 3,
-        image: "/images/sample-d.jpg",
+        image: [{ url: "/images/sample-d.jpg", publicId: "sample-d.jpg" }],
         price: 12.0,
         product: "64fa1d9cfc13ae4aa6001004",
       },
@@ -90,14 +90,14 @@ const orders = [
       {
         name: "Sample Product E",
         qty: 2,
-        image: "/images/sample-e.jpg",
+        image: [{ url: "/images/sample-e.jpg", publicId: "sample-e.jpg" }],
         price: 18.5,
         product: "64fa1d9cfc13ae4aa6001005",
       },
       {
         name: "Sample Product F",
         qty: 1,
-        image: "/images/sample-f.jpg",
+        image: [{ url: "/images/sample-f.jpg", publicId: "sample-f.jpg" }],
         price: 25.0,
         product: "64fa1d9cfc13ae4aa6001006",
       },
@@ -122,7 +122,7 @@ const orders = [
       {
         name: "Sample Product G",
         qty: 1,
-        image: "/images/sample-g.jpg",
+        image: [{ url: "/images/sample-g.jpg", publicId: "sample-g.jpg" }],
         price: 30.0,
         product: "64fa1d9cfc13ae4aa6001007",
       },
