@@ -38,6 +38,9 @@ app.use(
     origin: [
       "http://localhost:3000", //admin
       "http://localhost:5173", //storefront
+      "http://localhost:5174", //storefront
+      "http://localhost:5175", //storefront
+      "http://localhost:5176", //storefront
       "https://storefront-beta.up.railway.app",
       "https://admin-beta.up.railway.app",
       "https://storefront2-production.up.railway.app",
@@ -48,6 +51,7 @@ app.use(
       "https://storefront4.webschema.online",
       "https://storefront5.webschema.online",
       "https://storefront6.webschema.online",
+      "https://storefront9.webschema.online",
     ],
     credentials: true,
   }),
